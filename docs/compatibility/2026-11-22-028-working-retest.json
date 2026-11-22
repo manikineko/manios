@@ -1,0 +1,1029 @@
+{
+ "date": "2026-11-22",
+ "build": "0.28.0",
+ "kernel_sha256": "ff11193faa0d3e4a1f6761a416f55a6aba1bcc06cab7790712898f8dea90ce9f",
+ "environment": "QEMU i386, CPU 486, 64 MiB RAM; fresh blank MBR+FAT16 disk per application; dosrun from /n/ata0p1",
+ "method": "Scripted reproduction of each recorded task (retest-028 harness): fixtures written with mtools, keystrokes via the QEMU PS/2 keyboard or serial console, checks on reconstructed screen text, screenshots and FAT16 file bytes after shutdown. CYLON4 is listed for completeness: its case only checks a clean exit and the entry is now Unsupported.",
+ "results": {
+  "0del-101": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/0DEL.EXE EMPTY.TXT"
+   ],
+   "inputs_sha256": {
+    "0DEL.EXE": "533727e0e7117e7d34f07a90c8cee508c713e70129de3dcdedb7179eefa55cc3"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "adventure-350": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ADVENTUR.EXE"
+   ],
+   "inputs_sha256": {
+    "ADVENTUR.EXE": "26bbe95ee8a3097f022bf87a4c3c41a3eb3b357da5dbe32dc70ed9d2f69425f0"
+   },
+   "notes": [
+    "input via serial console; PS/2 keyboard line input garbles 20A1 records (investigate)"
+   ],
+   "seconds": 25.5
+  },
+  "anywhere": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/AW.EXE TARGET.TXT"
+   ],
+   "inputs_sha256": {
+    "AW.EXE": "1ca49a677fa000a694ef863d926f13c00b230a98d590dc8b0ce50dfdc8a77191"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "asc2ebc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ASC2EBC.COM < /n/ata0p1/IN.TXT"
+   ],
+   "inputs_sha256": {
+    "ASC2EBC.COM": "4cc88cd3c3376f2dcee207ac660f2c49990e25bf0732f0c31cc39cc1ee6bff9f"
+   },
+   "notes": [],
+   "seconds": 5.3
+  },
+  "ascify13": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ASCIFY.COM TEST.BIN TEST.ASC",
+    "rm /n/ata0p1/TEST.BIN",
+    "dosrun C:/ASCIFY.COM TEST.ASC"
+   ],
+   "inputs_sha256": {
+    "ASCIFY.COM": "3a57114201a7a45a639acb19a67df6c045a2673d57eb8504a0b5b8ed7a29e25c"
+   },
+   "notes": [],
+   "seconds": 5.9
+  },
+  "b64": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/B64.EXE /?",
+    "dosrun C:/B64.EXE -e C:/RAW.TXT C:/OUT.B64",
+    "dosrun C:/B64.EXE -d C:/ENC.TXT C:/DEC.BIN"
+   ],
+   "inputs_sha256": {
+    "B64.EXE": "1ae523c3fd145178fae68a1f7ac1fd5bb29a1a2ff044a16c1bbf48e0aae38f48"
+   },
+   "notes": [],
+   "seconds": 12.6
+  },
+  "bob-dump-10": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DUMP.EXE SMALL.TXT"
+   ],
+   "inputs_sha256": {
+    "DUMP.EXE": "ea7d1e326f8a91989ccfcfa8b15b1b0963aca4486be9df87a0fd0e2236ca6cc0"
+   },
+   "notes": [],
+   "seconds": 5.8
+  },
+  "bsum": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/BSUM.COM C:/T1.TXT",
+    "dosrun C:/BSUM.COM C:/EMPTY.TXT",
+    "dosrun C:/BSUM.COM C:/BIG.BIN",
+    "dosrun C:/BSUM.COM C:/NOPE.TXT"
+   ],
+   "inputs_sha256": {
+    "BSUM.COM": "95d8e753cddca78ed8649728eb5f0f56684a27f803698c5b4ae98d40e1b8434d"
+   },
+   "notes": [],
+   "seconds": 6.5
+  },
+  "calculat": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CALCULAT.COM"
+   ],
+   "inputs_sha256": {
+    "CALCULAT.COM": "0d8bd0d0e53be053856f139e2e9795213c09ffc320e80cb80bb14f420af10a03"
+   },
+   "notes": [],
+   "seconds": 11.5
+  },
+  "carve-20a": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CARVE.EXE /s IN.TXT 1024",
+    "rm /n/ata0p1/IN.TXT",
+    "dosrun C:/CARVE.EXE /j IN.TXT"
+   ],
+   "inputs_sha256": {
+    "CARVE.EXE": "64ee957d4a3bd4fc2cf283193d5f0a0253dcfbc7369b10365268d6fa736fca5c"
+   },
+   "notes": [],
+   "seconds": 6.4
+  },
+  "case31": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CASE.COM /U C:/IN.TXT C:/OUT.TXT"
+   ],
+   "inputs_sha256": {
+    "CASE.COM": "9a888b42e6791a0f6da6c805a9bcfa82e21ef58827e255e7181254806795d5fc"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "chksum-2": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CHKSUM.EXE -v -c C:/CHKSUM.EXE"
+   ],
+   "inputs_sha256": {
+    "CHKSUM.EXE": "d71884abf281e666f16bd96102c8b2e610885a27a549953e34a3369369f8c8c4"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "chktxt-200": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CHKTXT.EXE -f C:/IN.TXT"
+   ],
+   "inputs_sha256": {
+    "CHKTXT.EXE": "f56ee81975b8c764529a0f5f6dfa321578562740c94b8bf083973b082e02daf0"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "chunt-10": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CHUNT.EXE C: COMM"
+   ],
+   "inputs_sha256": {
+    "CHUNT.EXE": "15919aac747f274ae02d97953b92c3945fd2bd5df5b5018381b0ca1b0622261b"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "cleanse-11": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CLEANSE.COM IN.TXT OUT.TXT"
+   ],
+   "inputs_sha256": {
+    "CLEANSE.COM": "81e635debe526bb9e42bcb7bdf2284292d9ab865eab56aa8582f00db6572b04e"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "comphex": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/COMPHEX.EXE C:/A.HEX C:/SAME.HEX",
+    "dosrun C:/COMPHEX.EXE C:/A.HEX C:/B.HEX"
+   ],
+   "inputs_sha256": {
+    "COMPHEX.EXE": "e8c6fc148b5cc51c666f61e8ab137142b52be6fdd61dfe8d0d6d476fb52f24b6"
+   },
+   "notes": [],
+   "seconds": 5.7
+  },
+  "comt-010d": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/COMT.COM -w HELLO.COM HELLO.ASC",
+    "rm /n/ata0p1/HELLO.COM",
+    "dosrun C:/COMT.COM -x HELLO.ASC HELLO.COM"
+   ],
+   "inputs_sha256": {
+    "COMT.COM": "a00fc97d1e9a6ea8b3281555f7e6320eaa4dcf591346dd321001752ac845fd4e",
+    "HELLO.COM": "563f14a04ced6345538936bf1d4d1d48d2e81ce76ecb71c3837a2e08dfb50e4c"
+   },
+   "notes": [],
+   "seconds": 6.4
+  },
+  "cut-101": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CUT.EXE -f1,3 -d, -t\"%s:%s\" C:/IN.CSV"
+   ],
+   "inputs_sha256": {
+    "CUT.EXE": "a8bd7c646ced2dc44600e76efc577802b7b78f628772a2aba64b95f5ccaa8286"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "cylon4": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CYLONEGA.COM"
+   ],
+   "inputs_sha256": {
+    "CYLONEGA.COM": "d2e70e87a36d420954edd900e689da2741da115cd8592ec63e9ab92daeafaa8d"
+   },
+   "notes": [
+    "cursor shape change judged from screenshot only"
+   ],
+   "seconds": 5.7
+  },
+  "dir4-405": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DIR4.COM"
+   ],
+   "inputs_sha256": {
+    "DIR4.COM": "7a8fef0f7a1fec67e133cf15c34b15e228ad8a5535cf8b83c7ba6b819b9c41f5"
+   },
+   "notes": [],
+   "seconds": 20.2
+  },
+  "directory-commander-110": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DIRCMDR.EXE"
+   ],
+   "inputs_sha256": {
+    "DIRCMDR.EXE": "7bc2e577faaadf3b214f8872776249c95ce41bf2eacfa54621988e5ca4f3d51b"
+   },
+   "notes": [],
+   "seconds": 11.2
+  },
+  "directory-freedom": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DF.COM"
+   ],
+   "inputs_sha256": {
+    "AR.COM": "3d0b714b511c3b721ba3fb942fa287bdfb0df0afeedb146d077c1cdb24e51734",
+    "DF.COM": "c73ba877c72bce323dbe83889a647c53aea10a089a82a87ce37793c9122e5a9b",
+    "DFCONFIG.EXE": "782755455f98ddd373e2c06407734e546a521799e5f0203ab99ec8015fe4bba8",
+    "LR.COM": "cc0c8066f87feb5461593bcc535912b4d62c3a7e046eb261c1d397c0ee7ad2f6",
+    "PATCH.COM": "dda98e3328a44d9190576e2588cce3fcf1e988c82f96d3a444248f8f550ea4b9",
+    "UNARJXR.EXE": "e1a7e8116af4b3d73b6a276c1c7f637274863b39b769769d884739684fde83b5",
+    "ZOR.COM": "de2a32dc93f2cd51a4fe089d5a64491989e801d44b87c1358e0a0d0d137476cd",
+    "ZR.COM": "339975b3c29e356e88eba24c4970a089e9a136f822f62c48e93a5a81bffaf0ee"
+   },
+   "notes": [],
+   "seconds": 28.5
+  },
+  "doscvt-24": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DOSCVT.EXE -u C:/IN.TXT"
+   ],
+   "inputs_sha256": {
+    "DOSCVT.EXE": "6373970078d17589ae1aff366241d5e3ef2f7b3200d71e979ed76ae1dfd36e0e"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "easter-12": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/EASTER.EXE 2001"
+   ],
+   "inputs_sha256": {
+    "EASTER.EXE": "d5e4ec4ac9fea7cb40044d3ff68ae954570cd34ca59aebcb4902278390956867"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "edice": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/EDICE.EXE"
+   ],
+   "inputs_sha256": {
+    "EDICE.EXE": "37a07b3bd6f5a401ec9c7abdcdecb59b896cbbadb79d04c5a6128c719e821208"
+   },
+   "notes": [
+    "die face judged from screenshot"
+   ],
+   "seconds": 15.1
+  },
+  "editv": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/EDITV.EXE C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "EDITV.EXE": "f508b124a48bb3d16f1e1434638037b877e70c59744cc01c29c662c2fb703ba4"
+   },
+   "notes": [],
+   "seconds": 16.9
+  },
+  "exemenu-22": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/RUN/EXEMENU.EXE"
+   ],
+   "inputs_sha256": {
+    "ACTION.COM": "13ab615c83a49e7b82a65665f989a389cd89da090a0ef7600be830b07095f428",
+    "RUN/EXEMENU.EXE": "10992c0c3ec204cebb1b31a8807636ec414bf51cae213679ebaad5eca8b16a69"
+   },
+   "notes": [],
+   "seconds": 15.7
+  },
+  "expr-vi2": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/EXPR.COM \"2 + 3 * 4\""
+   ],
+   "inputs_sha256": {
+    "EXPR.COM": "3c7cdf183b086e84be43e4274cb29753de1165ce81f6ec43a99cdf605c1ef4b7"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "fdbanner": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/FDBANNER.COM"
+   ],
+   "inputs_sha256": {
+    "FDBANNER.COM": "0c9c7d565c28416cf08133485ae717fab170dd495bb15415dcf5e1f9967d5ebf"
+   },
+   "notes": [],
+   "seconds": 6.1
+  },
+  "figlet": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/FIGLET.EXE -f C:/fonts/standard ManiOS",
+    "dosrun C:/FIGLET.EXE -I 1"
+   ],
+   "inputs_sha256": {
+    "FIGLET.EXE": "ea91967a62d877a9302f07285727db0201143a7770ce44916f05361864d113b1"
+   },
+   "notes": [],
+   "seconds": 6.8
+  },
+  "findline-100": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/FINDLINE.EXE /L /N needle C:/IN.TXT"
+   ],
+   "inputs_sha256": {
+    "FINDLINE.EXE": "8e73dd98e8a3722382d1f1f63ca1520783afba7a937695edb58f5a4b461228c0"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "format83": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/FORMAT83.COM C:/TEST.BIN"
+   ],
+   "inputs_sha256": {
+    "FORMAT83.COM": "cdb3f58b08e00b1e7b13522a0895eb66cec7c9d8898d85d783a9831eb3640a3b"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "freedos-attrib": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ATTRIB.COM C:/FILE.TXT",
+    "dosrun C:/ATTRIB.COM +R C:/FILE.TXT",
+    "dosrun C:/ATTRIB.COM C:/FILE.TXT",
+    "dosrun C:/ATTRIB.COM -R C:/FILE.TXT"
+   ],
+   "inputs_sha256": {
+    "ATTRIB.COM": "63e5932a6f6604c584f77691ba55f882439f1c4c8637fb6e45f4ee5bc41f0414"
+   },
+   "notes": [],
+   "seconds": 6.6
+  },
+  "freedos-deltree": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DELTREE.COM C:/TESTTREE",
+    "dosrun C:/DELTREE.COM C:/TESTTREE",
+    "dosrun C:/DELTREE.COM /Y C:/MISSING"
+   ],
+   "inputs_sha256": {
+    "DELTREE.COM": "72b6b5596048979a7a8526c73753892e0b13408821441cd3154e8d0b5fb013cb"
+   },
+   "notes": [],
+   "seconds": 17.4
+  },
+  "freedos-fc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/FC.EXE C:/A.TXT C:/B.TXT",
+    "dosrun C:/FC.EXE C:/A.TXT C:/C.TXT",
+    "dosrun C:/FC.EXE /B C:/A.TXT C:/C.TXT"
+   ],
+   "inputs_sha256": {
+    "FC.EXE": "f6f03ca1aaa4874049f05de1289f7a8b55e5a23ff94709345983f156ffb2f39f"
+   },
+   "notes": [],
+   "seconds": 6.4
+  },
+  "freedos-find": {
+   "result": "PASS",
+   "commands": [
+    "dosrun --mount A=/n/ata0p1 A:/FIND.COM \"apple\" INPUT.TXT",
+    "dosrun --mount A=/n/ata0p1 A:/FIND.COM /I \"apple\" INPUT.TXT",
+    "dosrun --mount A=/n/ata0p1 A:/FIND.COM /V \"banana\" INPUT.TXT",
+    "dosrun --mount A=/n/ata0p1 A:/FIND.COM \"apple\" MISSING.TXT"
+   ],
+   "inputs_sha256": {
+    "FIND.COM": "0cf1515263147cdb2de7d214e6685c5a208dd5504f8890e09b996ea14aee9fa8"
+   },
+   "notes": [],
+   "seconds": 6.9
+  },
+  "freedos-mem": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MEM.EXE"
+   ],
+   "inputs_sha256": {
+    "MEM.EXE": "6f850921e0fdd40ad172099ec126831c17397e250963402fb03f4eb7c79dc9f4"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "freedos-more": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MORE.EXE /?",
+    "dosrun C:/MORE.EXE C:/INPUT.TXT",
+    "dosrun C:/MORE.EXE < /n/ata0p1/INPUT.TXT",
+    "dosrun C:/MORE.EXE C:/LONG.TXT"
+   ],
+   "inputs_sha256": {
+    "MORE.EXE": "d57bba5d16674ed48f6bb5bf8634bc55f33d14d1171df9d52e4a425fc6a57239"
+   },
+   "notes": [],
+   "seconds": 10.2
+  },
+  "freedos-vcls": {
+   "result": "PASS",
+   "commands": [
+    "echo some text before clearing",
+    "dosrun C:/VCLS.COM"
+   ],
+   "inputs_sha256": {
+    "VCLS.COM": "86f0f881b164b0af472ecd90e873a5a03814835164aa5b74e6ec0c8173fefe53"
+   },
+   "notes": [
+    "screen clear checked in screenshot"
+   ],
+   "seconds": 6.0
+  },
+  "getlines-10": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/GETLINES.EXE C:/IN.TXT -l2 -c1 -n"
+   ],
+   "inputs_sha256": {
+    "GETLINES.EXE": "73709bf0a86b038bbc9ce1e517cb6b62ab839d07fa473f4b3fd4f16e3420ba6f"
+   },
+   "notes": [],
+   "seconds": 5.7
+  },
+  "hexbin": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/HEXBIN.EXE C:/TEST.BIN C:/OUT.HEX",
+    "dosrun C:/HEXBIN.EXE C:/OUT.HEX C:/ROUND.BIN"
+   ],
+   "inputs_sha256": {
+    "HEXBIN.EXE": "0600352351ddd2cdbafc2f157a4a1a7be0e599884d5c807e669d1cd1c9565a33"
+   },
+   "notes": [],
+   "seconds": 5.7
+  },
+  "hexdec": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/HEX.EXE 27 78 255",
+    "dosrun C:/DEC.EXE 1B 4E FF"
+   ],
+   "inputs_sha256": {
+    "HEX.EXE": "330e982457dbbd3c4c7f5d704dfd6681ed739f52ee2145e32a486c4c18841af4",
+    "DEC.EXE": "34e2fcf4777ee0a4981746b78015d19060bf3a03ef566f57fab66a56bafabaad"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "info-zip-unzip": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/UNZIP.EXE -v",
+    "dosrun C:/UNZIP.EXE -l C:/KNOWN.ZIP",
+    "dosrun C:/UNZIP.EXE -t C:/KNOWN.ZIP",
+    "dosrun C:/UNZIP.EXE -o C:/KNOWN.ZIP -d C:/OUT",
+    "dosrun C:/UNZIP.EXE -p C:/KNOWN.ZIP ONE.TXT",
+    "dosrun C:/FUNZIP.EXE C:/KNOWN.ZIP"
+   ],
+   "inputs_sha256": {
+    "UNZIP.EXE": "c3d2eb5322ed896f34efde8b1a7e4bb2ce0d9f26c28fc14c6d5ad7db75f6f3fb",
+    "FUNZIP.EXE": "8a829a76fe060afc1426c2f35d627796458c547fe90e6fa981def4d3d2e27db9"
+   },
+   "notes": [],
+   "seconds": 11.7
+  },
+  "life2": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/LIFE2.EXE"
+   ],
+   "inputs_sha256": {
+    "LIFE2.EXE": "45f45ec0ff09ef9eb7f7a222b255d39ee263f6119467ec28e34a2f042760fd0a"
+   },
+   "notes": [
+    "LIFE2 generation evolution is checked visually in the run screenshot"
+   ],
+   "seconds": 23.9
+  },
+  "lzwpc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/LZWCOM.EXE C:/IN.TXT C:/OUT.LZW",
+    "dosrun C:/LZWUNC.EXE C:/OUT.LZW C:/BACK.TXT"
+   ],
+   "inputs_sha256": {
+    "LZWCOM.EXE": "2477f8735bfda82ed2835c14315ab4acd9fa9e84dcd239d699e385d18e407733",
+    "LZWUNC.EXE": "2ca1355baefd057ab47c762ee248a8fd1c17142833da0a9b75c67f504fcdc46e"
+   },
+   "notes": [],
+   "seconds": 5.7
+  },
+  "makeuu11": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MAKEUUE.EXE TEST.BIN TESTUU.BAT"
+   ],
+   "inputs_sha256": {
+    "MAKEUUE.EXE": "07285fed2f424704df53c4236c21d29a727dadd8ebceb97016f08bc6a68b107e"
+   },
+   "notes": [
+    "payload decoded by the checker below"
+   ],
+   "seconds": 5.3
+  },
+  "marathon-arj": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ARJ.EXE a C:/TEST.ARJ C:/INPUT.TXT",
+    "dosrun C:/ARJ.EXE l C:/TEST.ARJ",
+    "dosrun C:/ARJ.EXE e C:/TEST.ARJ C:/OUT/"
+   ],
+   "inputs_sha256": {
+    "ARJ.EXE": "70ac2db706947c1811677de3aa5498fbcf4cc46922e17312c5a6b18204db28c6"
+   },
+   "notes": [],
+   "seconds": 15.4
+  },
+  "marathon-cal": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/CAL.COM 3/2000"
+   ],
+   "inputs_sha256": {
+    "CAL.COM": "1439c7910fd5d0df45fab1f3c4901ac2167f4a62d9b40f6ecefef2b75f50a19d"
+   },
+   "notes": [],
+   "seconds": 5.3
+  },
+  "marathon-dosutil": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/PRINTF.COM HELLO"
+   ],
+   "inputs_sha256": {
+    "PRINTF.COM": "05006447037c2885dfadf732c9cf89c98c392c86edf3aa453e95dc93711c00bd"
+   },
+   "notes": [],
+   "seconds": 5.7
+  },
+  "marathon-du": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/DU.EXE C:/"
+   ],
+   "inputs_sha256": {
+    "DU.EXE": "668803fe2cff4dd8301a5a7621d2655ffcb73af6c5ae75b389629ae14e354563"
+   },
+   "notes": [],
+   "seconds": 5.3
+  },
+  "marathon-gnubc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/BC.EXE CALC.BC",
+    "dosrun C:/BC.EXE C:/CALC.BC"
+   ],
+   "inputs_sha256": {
+    "BC.EXE": "765f14a1cbaf5f424557b464523d3f412d77d3ceaf2b0eb8b5194e73381e8120"
+   },
+   "notes": [],
+   "seconds": 6.3
+  },
+  "marathon-grep": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/GREP.EXE target C:\\FIXTURE.TXT"
+   ],
+   "inputs_sha256": {
+    "GREP.EXE": "0109fc4200e9834c0de121ee1c8ba45243a1976666cf0756e9907aad90aa1e15"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "marathon-gzip": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/GZIP.EXE C:/INPUT.TXT",
+    "dosrun C:/GZIP.EXE -d C:/INPUT.TXZ"
+   ],
+   "inputs_sha256": {
+    "GZIP.EXE": "d0ff074ccc415a2625959226af4a39503a601988c26cd26bc034e84f30a653d3"
+   },
+   "notes": [],
+   "seconds": 11.7
+  },
+  "marathon-head": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/HEAD.COM C:\\FIXTURE.TXT"
+   ],
+   "inputs_sha256": {
+    "HEAD.COM": "c6b978e371e3473cdf73e8a9554a293212bc79c308905f36ebfca79a647d8019"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "marathon-rcal": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/RCAL.COM"
+   ],
+   "inputs_sha256": {
+    "RCAL.COM": "a687942b85fd0a9e22a63c0a412a847f350ee23bcf477bda3364fc66c2f24d8f"
+   },
+   "notes": [],
+   "seconds": 12.0
+  },
+  "marathon-sleep": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/SLEEP.EXE 0",
+    "dosrun C:/SLEEP.EXE 1",
+    "dosrun C:/SLEEP.EXE 2"
+   ],
+   "inputs_sha256": {
+    "SLEEP.EXE": "a399ceaf94a93dd5d78240caca31ee6591ecefc212f205117d6e4d8febf03305"
+   },
+   "notes": [
+    "sleep 0: 0.38s",
+    "sleep 1: 1.46s",
+    "sleep 2: 2.44s"
+   ],
+   "seconds": 9.3
+  },
+  "marathon-tee": {
+   "result": "PASS",
+   "commands": [
+    "echo HELLO | dosrun --env LANG=en --env NLSPATH=C:/NLS C:/TEE.EXE C:/OUTPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "TEE.EXE": "3978d0c741d8b2289547e78650426a5515c827eece6797d0c66648429a907d03",
+    "_TEE.EXE": "e64d50564546d13d05aeea101e351860b8f3efe30e165d38bd6d207ab379a69a"
+   },
+   "notes": [],
+   "seconds": 5.8
+  },
+  "marathon-touch": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TOUCH.COM C:/TOUCHED.TXT"
+   ],
+   "inputs_sha256": {
+    "TOUCH.COM": "80fdc77e008f8363d064cdb6e4b9f3fdc7477be7ea701851b10e422843eafadd"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "marathon-xdel": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/XDEL.COM C:/DELETE.TXT"
+   ],
+   "inputs_sha256": {
+    "XDEL.COM": "dc2a8c1e4e87cd12226d4f2da1723dd1cc4c445f2ee4a6bcc10303afbaeef528"
+   },
+   "notes": [],
+   "seconds": 10.7
+  },
+  "marathon-xgrep": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/XGREP.EXE target C:/FIXTURE.TXT",
+    "dosrun C:/XGREP.EXE target FIXTURE.TXT",
+    "dosrun C:/XGREP.EXE ^beta FIXTURE.TXT",
+    "dosrun C:/XGREP.EXE absent FIXTURE.TXT"
+   ],
+   "inputs_sha256": {
+    "XGREP.EXE": "f67e4785ba34b676716aab8e1ea30d1057bab9c62bb979cd9d7d50239b86ae08"
+   },
+   "notes": [],
+   "seconds": 6.3
+  },
+  "marathon-zoo": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ZOO.EXE a C:/TEST.ZOO INPUT.DAT",
+    "dosrun C:/ZOO.EXE l C:/TEST.ZOO",
+    "rm /n/ata0p1/INPUT.DAT",
+    "dosrun C:/ZOO.EXE x C:/TEST.ZOO"
+   ],
+   "inputs_sha256": {
+    "ZOO.EXE": "2e58b8ae96db8d1af43fe80d76404875bae32799a4a3408b1a099939bfb3500c"
+   },
+   "notes": [],
+   "seconds": 6.3
+  },
+  "memmap-2": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MEMMAP.EXE"
+   ],
+   "inputs_sha256": {
+    "MEMMAP.EXE": "33637722297d6bebb71f2a41e4eb085d6a243de42421187579745b016c182738"
+   },
+   "notes": [],
+   "seconds": 5.6
+  },
+  "microemacs-39": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MEIBM.EXE C:/TEST.TXT",
+    "dosrun C:/MEIBM.EXE C:/TEST.TXT"
+   ],
+   "inputs_sha256": {
+    "MEIBM.EXE": "1252e4232867d408aca1d7baaae21cc9d8373f0e9d777f4689bd6839a1732f31"
+   },
+   "notes": [],
+   "seconds": 23.5
+  },
+  "mime64d": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/MIME64.EXE C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "MIME64.EXE": "cad83fdb2ce24e3c08a91a038551b6b44d3238a4d64e9a621a23a2d6ccedb186"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "qedit": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/QEDIT/Q.EXE C:/INPUT.TXT",
+    "dosrun C:/QEDIT/Q.EXE C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "QEDIT/Q.EXE": "d04abfa9673bb96e50cd03a853114ff8c7a6f70a5c0a9e343acb6c6bef5485af",
+    "QEDIT/QCONFIG.EXE": "67f679ad5b18109afab4090135703c03049c8b4fa5bfb644a83a4b3449c6f137"
+   },
+   "notes": [],
+   "seconds": 22.3
+  },
+  "random1": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/RANDOM.EXE"
+   ],
+   "inputs_sha256": {
+    "RANDOM.EXE": "35385ca3e42660d3720e48496c4a87aa1f30af7842442756b238f962a576ab15"
+   },
+   "notes": [],
+   "seconds": 21.6
+  },
+  "rle16-sc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/RLE16.EXE C:/IN.TXT",
+    "rm /n/ata0p1/IN.TXT",
+    "dosrun C:/UNRLE16.EXE C:/IN.R16"
+   ],
+   "inputs_sha256": {
+    "RLE16.EXE": "76c25f0b465b7baf59238fc823d677375b7ff9a8a0fe4a716471dff0fdda5ed5",
+    "UNRLE16.EXE": "0e5c9ade898e77a8f1eea8ca066aed5f4174e7f9c7f78edf1add21305a9328d0"
+   },
+   "notes": [],
+   "seconds": 5.9
+  },
+  "sal-sc": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TSE/SC.EXE C:/HELLO.S"
+   ],
+   "inputs_sha256": {
+    "TSE/E.EXE": "665dbeec2e899393a1e339e2710960f82760a6023addea7338a9af6c4afa1285",
+    "TSE/GREP.COM": "9915252ab6e05b2afd67ade0c6fa92801eaa4e3ab14bc96c67c966826a6479bf",
+    "TSE/SC.EXE": "23bdc898770fed99fc46e96ca50b9a91481540f321bab12ebb5cd9cf293d615f",
+    "TSE/TSORT.COM": "db369adce4a5f1bebec56a1c1c2fb673b035556f8b1c2a9b67b5dd507a550c1d"
+   },
+   "notes": [],
+   "seconds": 6.6
+  },
+  "search": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/SEARCH.EXE /?",
+    "dosrun C:/SEARCH.EXE TARGET.TXT",
+    "dosrun C:/SEARCH.EXE ABSENT.ZZZ"
+   ],
+   "inputs_sha256": {
+    "SEARCH.EXE": "c2ab662ee32aa1611033bb0f0a62b7d3cd579da503d8a225d5f9d462921c458c"
+   },
+   "notes": [],
+   "seconds": 6.1
+  },
+  "semware-grep": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TSE/GREP.COM apple C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "TSE/E.EXE": "665dbeec2e899393a1e339e2710960f82760a6023addea7338a9af6c4afa1285",
+    "TSE/GREP.COM": "9915252ab6e05b2afd67ade0c6fa92801eaa4e3ab14bc96c67c966826a6479bf",
+    "TSE/SC.EXE": "23bdc898770fed99fc46e96ca50b9a91481540f321bab12ebb5cd9cf293d615f",
+    "TSE/TSORT.COM": "db369adce4a5f1bebec56a1c1c2fb673b035556f8b1c2a9b67b5dd507a550c1d"
+   },
+   "notes": [],
+   "seconds": 6.6
+  },
+  "semware-tse": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TSE/E.EXE C:/INPUT.TXT",
+    "dosrun C:/TSE/E.EXE C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "TSE/E.EXE": "665dbeec2e899393a1e339e2710960f82760a6023addea7338a9af6c4afa1285",
+    "TSE/GREP.COM": "9915252ab6e05b2afd67ade0c6fa92801eaa4e3ab14bc96c67c966826a6479bf",
+    "TSE/SC.EXE": "23bdc898770fed99fc46e96ca50b9a91481540f321bab12ebb5cd9cf293d615f",
+    "TSE/TSORT.COM": "db369adce4a5f1bebec56a1c1c2fb673b035556f8b1c2a9b67b5dd507a550c1d"
+   },
+   "notes": [],
+   "seconds": 24.1
+  },
+  "semware-tsort": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TSE/TSORT.COM C:INPUT.TXT C:SORTED.TXT"
+   ],
+   "inputs_sha256": {
+    "TSE/E.EXE": "665dbeec2e899393a1e339e2710960f82760a6023addea7338a9af6c4afa1285",
+    "TSE/GREP.COM": "9915252ab6e05b2afd67ade0c6fa92801eaa4e3ab14bc96c67c966826a6479bf",
+    "TSE/SC.EXE": "23bdc898770fed99fc46e96ca50b9a91481540f321bab12ebb5cd9cf293d615f",
+    "TSE/TSORT.COM": "db369adce4a5f1bebec56a1c1c2fb673b035556f8b1c2a9b67b5dd507a550c1d"
+   },
+   "notes": [],
+   "seconds": 6.5
+  },
+  "sqpc131": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/SQPC131.COM C:/IN.TXT",
+    "rm /n/ata0p1/IN.TXT",
+    "dosrun C:/UNSQPC13.COM C:/IN.TQT"
+   ],
+   "inputs_sha256": {
+    "SQPC131.COM": "cbfd1de0ee7ef1df7931fa65ca00b83e7f41e94dc2eba02f757075c5712dcf05",
+    "UNSQPC13.COM": "464811cfbf146b2a7b598852479e7bbc9a78d38351c8613451c1e1f2efe9faa7"
+   },
+   "notes": [],
+   "seconds": 5.9
+  },
+  "ted": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TED/TED3.COM C:/INPUT.TXT",
+    "dosrun C:/TED/TED3.COM C:/INPUT.TXT"
+   ],
+   "inputs_sha256": {
+    "TED/TED3.COM": "855007dce4ce1532ef024763a77fb4e9a32a678272fc0ecb6e56282f917b032e"
+   },
+   "notes": [],
+   "seconds": 22.9
+  },
+  "turbo-pascal-30": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/TURBO.COM"
+   ],
+   "inputs_sha256": {
+    "TURBO.COM": "480dcdd39f49e4f36c022fc18965ab35ef4c5d2f5273f44155b8f9296b1a0f85"
+   },
+   "notes": [],
+   "seconds": 35.5
+  },
+  "unusual": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/UNUSUAL.COM"
+   ],
+   "inputs_sha256": {
+    "UNUSUAL.COM": "6f7e3b3d9ae2c3076a61d8c7c9475b23fe20584fce8795da7e7a7ee617a173e6"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "utf8tocp": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/UTF8TOCP.COM 437 C:/UTF8.TXT C:/ENC.TXT",
+    "dosrun C:/UTF8TOCP.COM -r 437 C:/CP437.TXT C:/DEC.TXT",
+    "dosrun C:/UTF8TOCP.COM 775 C:/LTUTF8.TXT C:/LTENC.TXT",
+    "dosrun C:/UTF8TOCP.COM -r 775 C:/LT775.TXT C:/LTDEC.TXT"
+   ],
+   "inputs_sha256": {
+    "UTF8TOCP.COM": "1c50cef6e628b34dac098a77bc6c4f767b43a014ae31164f0c6701dc0be778f5"
+   },
+   "notes": [],
+   "seconds": 6.9
+  },
+  "vern-buerg-list": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/LIST.COM C:/LISTTEST.TXT"
+   ],
+   "inputs_sha256": {
+    "LIST.COM": "aa954f7c51386ed66b88f6beb2a135330a68a0a5b2e104ea489e48288474e60b"
+   },
+   "notes": [],
+   "seconds": 11.1
+  },
+  "view": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/VIEW.EXE C:/VIEW.DOC"
+   ],
+   "inputs_sha256": {
+    "VIEW.EXE": "b66dc89569a3d8f7e70a8c7d72ba0607e8aa346ba8262123bbd5deff821b1610"
+   },
+   "notes": [],
+   "seconds": 19.9
+  },
+  "visicalc": {
+   "result": "PASS",
+   "commands": [
+    "cd vc",
+    "dosrun C:/VC/VC.COM",
+    "dosrun C:/VC/VC.COM"
+   ],
+   "inputs_sha256": {
+    "VC/VC.COM": "06b80d1c56b69232fd85cf55dee0b3369c2af3197bfbda5c4c584490e0418495"
+   },
+   "notes": [],
+   "seconds": 30.7
+  },
+  "vtreehp": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/VTREEHP.COM C:"
+   ],
+   "inputs_sha256": {
+    "VTREEHP.COM": "c76b54f4615e3dd4c7eb54eb3881fa95b0dc3b07529d023c9075929d5df9b141"
+   },
+   "notes": [],
+   "seconds": 5.4
+  },
+  "wordcnt": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/WORDCNT.COM C:/IN.TXT"
+   ],
+   "inputs_sha256": {
+    "WORDCNT.COM": "0ee0315ee9c5b46019da7e0c17bbfe9d36c98f850f37953c7f4443f4fd51c132"
+   },
+   "notes": [],
+   "seconds": 5.5
+  },
+  "zork1": {
+   "result": "PASS",
+   "commands": [
+    "dosrun C:/ZIP.EXE ZORK1.Z3",
+    "dosrun C:/ZIP.EXE ZORK1.Z3"
+   ],
+   "inputs_sha256": {
+    "ZIP.EXE": "2bb2577f47e6900154995c9a8138ddb74e3de5cdf94b31426987fcdf4b8794d7"
+   },
+   "notes": [],
+   "seconds": 44.1
+  }
+ }
+}

@@ -5,7 +5,7 @@ The red/yellow/green overview is in
 [dos-compatibility.md](../dos-compatibility.md); the machine-readable index is
 [database.json](database.json).
 
-Last updated: **2026-10-28**. ManiOS version: **0.27.0-10252026**.
+Last updated: **2026-11-22**. ManiOS version: **0.28.0**.
 
 The sections below record tests of real DOS applications through `dosrun`.
 Results apply only to the identified program version, ManiOS revision and test
@@ -21,7 +21,30 @@ for commands, timings, hashes and exact failure addresses. The 2026-10-23
 followed by the compat4 Info-ZIP, DOSStart, Spectra and PasswordBox batch and
 the FreeDOS-repo Games batch, followed by the text-adventure batch at the end.
 
-## October 26–28 correctness audit — latest results
+## 0.28.0 retest (2026-11-22) — latest results
+
+Sections below this one are historical where they disagree with it.
+
+- **Working list re-verified.** Each of the 82 programs that remain Working
+  was re-run on the 0.28.0 build with a scripted version of its recorded
+  task on a fresh FAT16 disk; screen text and the files written were
+  checked automatically ([results](2026-11-22-028-working-retest.json)).
+  Notes from that run: Adventure's 20-character answers are accepted over
+  the serial console but garbled when typed on the emulated PS/2 keyboard;
+  TED's reopened file is correct, but a stale shell line can remain on the
+  screen behind it.
+- **CYLON4 corrected to Unsupported.** Its 2026-10-25 log shows the same
+  `OUT 03D4h` stop as later runs, so the earlier Working entry was wrong.
+  On 0.28.0 the EGA variant installs as a TSR and ends; nothing remains
+  resident after dosrun exits.
+- **Targeted retest.** The entries whose stopping point the 0.28.0 dosrun
+  changes address were rerun; 9 are now Working and 13 Partial. Commands,
+  observations and screenshots: [targeted retest](2026-11-22-028-targeted-retest.md).
+- **Runner changes** are described in
+  [dosrun.md](../dosrun.md#hardware-and-cpu-model-0280) and the
+  [0.28.0 release notes](../releases/0.28.0.md).
+
+## October 26–28 correctness audit (superseded by 0.28.0 where they differ)
 
 Earlier sections below remain historical. [Engineering report](2026-10-27-bugfix-audit.md), [full transcripts](2026-10-28-bugfix-results.json), and [all-200 catalogue review](2026-10-28-bugfix-catalogue.json).
 

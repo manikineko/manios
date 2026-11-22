@@ -22,8 +22,12 @@ int main(void){struct cpu c;cpu_init(&c);c.sreg[1]=0x100;c.sreg[2]=0x300;c.sreg[
   CHECK((memory?mem_r16(&c,0x2800):c.r[BX])==(equal?(b&~mask)|(0x5678&mask):b));
   CHECK((c.flags&0x8d5)==(flags&0x8d5));CHECK(c.flags&FLAG_IF);
  }
- /* Unmodeled FS/GS and control/MSR state must never overwrite SS/flags. */
- unsigned unsupported[]={0xa0,0xa1,0xa8,0xa9,0x06,0x30};
+ /* FS/GS are modeled (0.28.0): POP FS/GS load them, never SS/flags. */
+ c.ip=0;c.flags=0x203;c.r[SP]=0x8000;c.sreg[2]=0x300;wr16(&c,0x300,0x8000,0xbeef);c.mem[0x1000]=0x0f;c.mem[0x1001]=0xa1;
+ CHECK(cpu_step(&c)==CPU_OK&&c.fs==0xbeef&&c.flags==0x203&&c.r[SP]==0x8002&&c.sreg[2]==0x300);
+ c.ip=0;c.r[SP]=0x8000;c.mem[0x1001]=0xa9;CHECK(cpu_step(&c)==CPU_OK&&c.gs==0xbeef&&c.flags==0x203&&c.sreg[2]==0x300);
+ /* Unmodeled control/MSR state must never overwrite SS/flags. */
+ unsigned unsupported[]={0x06,0x30};
  for(unsigned i=0;i<sizeof(unsupported)/sizeof(unsupported[0]);i++){
   c.ip=0;c.flags=0x203;c.r[SP]=0x8000;c.sreg[2]=0x300;wr16(&c,0x300,0x8000,0xdead);c.mem[0x1000]=0x0f;c.mem[0x1001]=unsupported[i];
   CHECK(cpu_step(&c)==CPU_FAULT);CHECK(c.flags==0x203&&c.r[SP]==0x8000&&c.sreg[2]==0x300);

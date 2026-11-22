@@ -36,6 +36,13 @@ enum {
 #define FLAG_OF 0x0800
 
 /* Why cpu_step stopped. */
+/* Default interrupt handlers: BIOS/DOS vectors without a handler of their
+ * own point at a per-vector ROM stub (INT F3h; IRET) at F000:0200+3v, as a
+ * real PC's vectors all point somewhere. A program that chains or far-calls
+ * through such a vector still reaches dosrun's service for that vector. */
+#define CPU_DEFAULT_VECTOR_SEG 0xF000
+#define CPU_DEFAULT_VECTOR_OFF(v) (0x0200 + (v) * 3)
+
 enum cpu_stop {
 	CPU_OK,      /* the instruction ran; keep going */
 	CPU_HALT,    /* HLT */
@@ -48,8 +55,10 @@ enum cpu_stop {
 
 struct cpu {
 	uint16_t r[8];
-	uint16_t r_hi[8]; /* Upper halves of EAX..EDI; 8/16-bit writes preserve these. */
+	uint16_t r_hi[8];
+	uint16_t msw;      /* the machine status word (CR0 low half): 0 = real mode, no coprocessor */ /* Upper halves of EAX..EDI; 8/16-bit writes preserve these. */
 	uint16_t sreg[4]; /* ES, CS, SS, DS */
+	uint16_t fs, gs;  /* the 386's extra data segments (real-mode values) */
 	uint16_t ip;
 	uint16_t flags;
 	uint16_t flags_hi; /* Real-mode AC/ID (bits 18/21); no VM/protected mode. */

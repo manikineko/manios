@@ -122,6 +122,65 @@ All are included in `make test`.
 
 Reference: [Intel instruction format and operand-size prefixes](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf).
 
+## Hardware and CPU model (0.28.0)
+
+0.28.0 models more of the PC that DOS programs probe or program directly.
+Each item is a defined behaviour, checked by `tests/dosrun_device_test.py`.
+
+- **VGA CRT controller (3D4h/3D5h).** All 25 registers start at the
+  standard 80x25 colour values and read back. Cursor start/end (0Ah/0Bh)
+  and cursor location (0Eh/0Fh) are live views of the BIOS cursor; a start
+  address (0Ch/0Dh) on a 4 KiB boundary selects that text page. Other start
+  addresses (hardware scrolling) are stored but not rendered. Registers 0-7
+  honour the 11h write-protect bit.
+- **VGA DAC (3C6h-3C9h) and INT 10h AX=1010h/1012h/1015h/1017h-1019h.**
+  The 256-entry palette starts as the VGA BIOS default and is reset by a
+  mode set. Mode 13h pixels are drawn through it (they were previously
+  read as fixed RGB 3-3-2).
+- **VGA attribute controller (3C0h/3C1h).** Index/data flip-flop, reset by
+  reading 3DAh; registers are stored and read back, while the text renderer
+  keeps the standard colours. 3DBh, which VGA does not decode, reads FFh,
+  so a word read of 3DAh works. INT 10h AX=1A00h reports VGA with a colour
+  display and AH=12h/BL=10h reports a colour EGA/VGA with 256 KiB.
+- **Clock.** The MC146818 CMOS clock (70h/71h), INT 1Ah AH=02h/04h and DOS
+  AH=2Ah all read ManiOS's wall clock (`/dev/time`, UTC) in BCD 24-hour
+  form. Setting the clock is refused. The DOS date was previously fixed at
+  2026-10-07.
+- **Absent hardware.** There is no numeric coprocessor, game adapter or
+  Sound Blaster/AdLib, and probes see that: CPUID, INT 11h and CMOS report
+  no FPU; `ESC` (D8h-DFh) instructions decode their operand and do
+  nothing, `FWAIT` completes at once and ports F0h/F1h ignore writes, so
+  the Intel FNINIT/FNSTSW probe finds no FPU and programs use their own
+  floating-point emulation. Floating-point arithmetic itself is *not*
+  provided. Port 201h reads FFh; Sound Blaster (210h-28Fh) and AdLib
+  (388h-38Bh) ports read FFh and ignore writes.
+- **Keyboard commands.** Writes to port 60h of set-LEDs (EDh) and
+  set-typematic (F3h) with their parameter, enable (F4h) and defaults (F6h)
+  are acknowledged with FAh. Other keyboard commands are refused.
+- **Interrupt vectors.** Vectors 00h-3Fh and 70h-77h that have no handler
+  point at a per-vector ROM stub (F000:0200 + 3 x vector: a private trap,
+  then `IRET`), as on a PC every vector points somewhere. A program that
+  saves one and chains or far-calls to it reaches dosrun's service for that
+  interrupt, or returns if dosrun has none.
+- **CPU.** FS and GS are modelled (prefixes 64h/65h, `MOV`, `PUSH/POP`,
+  `LFS/LGS/LSS`); `MOV CS` and segment registers 6/7 are refused, where they
+  were previously folded onto ES/CS/SS/DS. `INT3` enters vector 3. `SMSW`
+  reports real mode with no coprocessor (other group-7 forms are refused).
+  `ARPL` raises #UD (vector 6) when the program has its own handler.
+  `LOCK` is accepted only on the memory read-modify-write forms the CPU
+  allows. Word `IN`/`OUT` are two byte accesses, port then port+1.
+- **DOS.** AH=60h (TRUENAME) returns the canonical `X:\PATH` and AH=36h
+  rejects unmounted drives (its free-space figures are still placeholders).
+  AH=31h and INT 27h (terminate and stay resident) end the program with its
+  return code: nothing stays resident after dosrun exits, so a TSR's
+  resident function is not available. AH=37h (switch character) is left
+  unimplemented on purpose: the DOS answer `/` makes programs that honour
+  it read ManiOS-style `C:/FILE` arguments as options.
+- **XMS.** The driver entry point (INT 2Fh AX=4310h) is a stub at F000:0380
+  that enters dosrun through a private trap with all registers intact; it
+  used to be written at `PSP:FE00`, inside large programs. INT 2Fh answers
+  only multiplex number 43h; other multiplex calls return unchanged.
+
 ## The services
 
 Each mounted drive starts at its root and keeps an independent DOS current

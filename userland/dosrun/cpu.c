@@ -457,10 +457,24 @@ static enum cpu_stop op_0f(struct cpu *c, int override)
 	c->fault_opcode = op;
 
 	switch (op) {
-	case 0x00: case 0x01: { /* the group 6: SLDT, STR, LLDT, LTR, VERR,
-	                         * VERW -- protected mode, not for a DOS
-	                         * program; refuse rather than mis-run. */
+	case 0x00: { /* the group 6: SLDT, STR, LLDT, LTR, VERR, VERW --
+	              * protected mode, not for a DOS program; refuse rather
+	              * than mis-run. */
 		return CPU_FAULT;
+	}
+	case 0x01: { /* group 7. Only SMSW is meaningful here: it is legal in
+	              * real mode and reports the machine status word. This
+	              * runner is a real-mode CPU without a coprocessor, so PE,
+	              * MP, EM, TS and ET are all clear; programs read it to
+	              * detect protected/virtual-8086 mode. SGDT/SIDT/LGDT/
+	              * LIDT/LMSW/INVLPG would need descriptor or mode state. */
+		uint16_t save_ip = c->ip;
+		int reg;
+		struct operand rm = decode_rm(c, &reg);
+		if (override >= 0) rm.seg = override;
+		if (reg != 4) { c->ip = save_ip; return CPU_FAULT; }
+		put16(c, &rm, c->msw);
+		return CPU_OK;
 	}
 	case 0x02: case 0x03: { /* LAR, LSL: also protected mode */
 		return CPU_FAULT;
@@ -514,7 +528,8 @@ static enum cpu_stop op_0f(struct cpu *c, int override)
 		put8_rm(c, &rm, cond(c, op & 0x0F) ? 1 : 0);
 		return CPU_OK;
 	}
-	case 0xA0: case 0xA1: return CPU_FAULT; /* FS is not modeled. */
+	case 0xA0: push16(c, c->fs); return CPU_OK;  /* PUSH FS */
+	case 0xA1: c->fs = pop16(c); return CPU_OK;  /* POP FS */
 	case 0xA2: { /* CPUID always reads/writes full 32-bit registers. */
 		uint32_t leaf = cpu_reg32(c, AX);
 		cpu_put_reg32(c, AX, leaf == 0 ? 1 : leaf == 1 ? 0x400 : 0);
@@ -545,7 +560,21 @@ static enum cpu_stop op_0f(struct cpu *c, int override)
 		put16(c, &rm, double_shift(c, get16(c, &rm), c->r[reg], count, 16, !!(op & 8)));
 		return CPU_OK;
 	}
-	case 0xA8: case 0xA9: return CPU_FAULT; /* GS is not modeled. */
+	case 0xA8: push16(c, c->gs); return CPU_OK;  /* PUSH GS */
+	case 0xA9: c->gs = pop16(c); return CPU_OK;  /* POP GS */
+	case 0xB2: case 0xB4: case 0xB5: { /* LSS/LFS/LGS r16, m16:16 */
+		uint16_t save_ip = c->ip;
+		int reg;
+		struct operand rm = decode_rm(c, &reg);
+		if (rm.is_reg) { c->ip = save_ip; return CPU_FAULT; } /* #UD */
+		if (override >= 0) rm.seg = override;
+		uint16_t off = rd16(c, rm.seg, rm.off), seg = rd16(c, rm.seg, (uint16_t)(rm.off + 2));
+		c->r[reg] = off;
+		if (op == 0xB2) { c->sreg[2] = seg; c->irq_shadow = 1; }
+		else if (op == 0xB4) c->fs = seg;
+		else c->gs = seg;
+		return CPU_OK;
+	}
 	case 0xAF: { /* IMUL reg16, rm16 */
 		int reg;
 		struct operand rm = decode_rm(c, &reg);
@@ -980,7 +1009,7 @@ enum cpu_stop cpu_step(struct cpu *c)
 	int override = -1, operand32 = 0;
 	uint16_t instruction_ip = c->ip;
 	uint8_t op, rep = 0;
-	int prefixes = 0;
+	int prefixes = 0, lock = 0;
 	for (;;) {
 		op = rd8(c, c->sreg[1], c->ip++);
 		if (++prefixes > 15) {
@@ -993,8 +1022,37 @@ enum cpu_stop cpu_step(struct cpu *c)
 		if (op == 0x2E) { override = c->sreg[1]; continue; }
 		if (op == 0x36) { override = c->sreg[2]; continue; }
 		if (op == 0x3E) { override = c->sreg[3]; continue; }
+		if (op == 0x64) { override = c->fs; continue; }
+		if (op == 0x65) { override = c->gs; continue; }
 		if (op == 0xF2 || op == 0xF3) { rep = op; continue; }
+		if (op == 0xF0) { lock = 1; continue; }
 		break;
+	}
+	/* LOCK asserts bus ownership. This interpreter is the only bus
+	 * master, so a lockable instruction runs unchanged; LOCK on anything
+	 * else (including a register destination) is #UD on the CPU and is
+	 * refused here as before. */
+	if (lock) {
+		uint8_t m = rd8(c, c->sreg[1], c->ip), ext = 0;
+		int reg = (m >> 3) & 7, ok;
+		if (op == 0x0F) { ext = m; m = rd8(c, c->sreg[1], (uint16_t)(c->ip + 1)); reg = (m >> 3) & 7; }
+		switch (op) {
+		case 0x00: case 0x01: case 0x08: case 0x09: case 0x10: case 0x11:
+		case 0x18: case 0x19: case 0x20: case 0x21: case 0x28: case 0x29:
+		case 0x30: case 0x31: case 0x86: case 0x87: ok = 1; break;
+		case 0x80: case 0x81: case 0x83: ok = reg != 7; break; /* not CMP */
+		case 0xF6: case 0xF7: ok = reg == 2 || reg == 3; break; /* NOT, NEG */
+		case 0xFE: case 0xFF: ok = reg <= 1; break;             /* INC, DEC */
+		case 0x0F: ok = ext == 0xAB || ext == 0xB3 || ext == 0xBB ||
+		               (ext == 0xBA && reg >= 5) || ext == 0xB0 || ext == 0xB1 ||
+		               ext == 0xC0 || ext == 0xC1; break;
+		default: ok = 0;
+		}
+		if (!ok || (m >> 6) == 3) {
+			c->fault_opcode = operand32 ? 0x66 : 0xF0;
+			c->ip = instruction_ip;
+			return CPU_FAULT;
+		}
 	}
 	c->insns++;
 	c->fault_opcode = op;
@@ -1241,7 +1299,8 @@ enum cpu_stop cpu_step(struct cpu *c)
 		if (override >= 0) {
 			rm.seg = override;
 		}
-		put16(c, &rm, c->sreg[reg & 3]);
+		if (reg > 5) return CPU_FAULT; /* no segment register 6/7: #UD */
+		put16(c, &rm, reg == 4 ? c->fs : reg == 5 ? c->gs : c->sreg[reg]);
 		return CPU_OK;
 	}
 	case 0x8D: { /* LEA */
@@ -1256,8 +1315,12 @@ enum cpu_stop cpu_step(struct cpu *c)
 		if (override >= 0) {
 			rm.seg = override;
 		}
-		c->sreg[reg & 3] = get16(c, &rm);
-		if ((reg & 3) == 2) c->irq_shadow = 1;
+		/* 4 and 5 are the 386's FS and GS. CS (1) and 6/7 are #UD on a
+		 * 286 or later; they were wrongly folded onto ES/CS/SS/DS. */
+		if (reg == 1 || reg > 5) return CPU_FAULT;
+		uint16_t v = get16(c, &rm);
+		if (reg == 4) c->fs = v; else if (reg == 5) c->gs = v; else c->sreg[reg] = v;
+		if (reg == 2) c->irq_shadow = 1;
 		return CPU_OK;
 	}
 	case 0x8F: { /* POP rm */
@@ -1415,6 +1478,45 @@ enum cpu_stop cpu_step(struct cpu *c)
 		cpu_set_flags(c, get8(c, 0), 8);
 		return CPU_OK;
 	}
+	case 0xCC: { /* INT3: the one-byte breakpoint interrupt, vector 3. */
+		c->int_no = 3;
+		uint16_t cs, ip;
+		cpu_enter_interrupt(c, c->int_no, &cs, &ip);
+		c->sreg[1] = cs;
+		c->ip = ip;
+		return CPU_INT;
+	}
+	case 0x9B: /* FWAIT: with no numeric coprocessor fitted, nothing is
+	            * ever busy or pending, so the wait completes at once. */
+		return CPU_OK;
+	case 0xD8: case 0xD9: case 0xDA: case 0xDB:
+	case 0xDC: case 0xDD: case 0xDE: case 0xDF: {
+		/* ESC: an instruction for the numeric coprocessor. None is
+		 * fitted (CPUID and INT 11h say so, MSW.EM/MP are clear), so as
+		 * on a PC without an 8087/287/387 the CPU decodes the operand
+		 * and nothing responds: no register changes and nothing is
+		 * stored. This is what the Intel FNINIT/FNSTSW presence probe
+		 * relies on. It does not provide floating-point arithmetic. */
+		int reg;
+		(void)decode_rm(c, &reg);
+		return CPU_OK;
+	}
+	case 0x63: { /* ARPL is not recognised in real mode: #UD (vector 6),
+	             * with the saved IP at the instruction itself. Programs
+	             * use this to tell CPUs apart. Without a handler of the
+	             * program's own there is nowhere sensible to go, so the
+	             * runner stops as before. */
+		uint16_t off = rd16(c, 0, 6 * 4), seg = rd16(c, 0, 6 * 4 + 2);
+		if ((!off && !seg) || (seg == CPU_DEFAULT_VECTOR_SEG && off == CPU_DEFAULT_VECTOR_OFF(6)))
+			return CPU_FAULT;
+		c->ip = instruction_ip;
+		c->int_no = 6;
+		uint16_t cs, ip;
+		cpu_enter_interrupt(c, c->int_no, &cs, &ip);
+		c->sreg[1] = cs;
+		c->ip = ip;
+		return CPU_INT;
+	}
 	case 0xCE: { /* INTO: interrupt 4 only when the overflow flag is set. */
 		if (!(c->flags & FLAG_OF)) return CPU_OK;
 		c->int_no = 4;
@@ -1497,8 +1599,27 @@ enum cpu_stop cpu_step(struct cpu *c)
 		if (op == 0xE6) c->ip++;
 		return CPU_OK;
 	}
-	case 0xE5: case 0xE7: case 0xED: case 0xEF: /* word I/O */
-		return CPU_FAULT;
+	case 0xE5: case 0xED: { /* IN AX,imm8 / IN AX,DX */
+		/* Every port device here is 8 bits wide; on the PC's ISA bus a
+		 * word access to such a device is two byte cycles, port then
+		 * port+1. */
+		uint16_t port = op == 0xE5 ? rd8(c, c->sreg[1], c->ip) : c->r[DX];
+		uint8_t lo, hi;
+		if (!c->port_in8 || c->port_in8(c, port, &lo) != 0 ||
+		    c->port_in8(c, (uint16_t)(port + 1), &hi) != 0)
+			return CPU_FAULT;
+		if (op == 0xE5) c->ip++;
+		c->r[AX] = (uint16_t)(lo | (hi << 8));
+		return CPU_OK;
+	}
+	case 0xE7: case 0xEF: { /* OUT imm8,AX / OUT DX,AX: AL to port, AH to port+1 */
+		uint16_t port = op == 0xE7 ? rd8(c, c->sreg[1], c->ip) : c->r[DX];
+		if (!c->port_out8 || c->port_out8(c, port, (uint8_t)c->r[AX]) != 0 ||
+		    c->port_out8(c, (uint16_t)(port + 1), (uint8_t)(c->r[AX] >> 8)) != 0)
+			return CPU_FAULT;
+		if (op == 0xE7) c->ip++;
+		return CPU_OK;
+	}
 	case 0xE8: { /* CALL rel16 */
 		int16_t rel = (int16_t)rd16(c, c->sreg[1], c->ip);
 		c->ip += 2;

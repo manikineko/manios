@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "updated": "2026-10-28",
+  "updated": "2026-11-22",
   "build": {
-    "version": "0.27.0-10252026",
-    "commit": "Uncommitted correctness audit; incoming development work preserved",
-    "kernel_sha256": "80758868c2fc3ad2f5ff04eba3e1fb03bc36b08e040e81cd24a9c012b9e3328e",
-    "environment": "QEMU i386, CPU 486, 64 MiB RAM; fresh disposable FAT16 images. 22 entries retested during October 26–28; 178 retain historical evidence. Per-run hashes distinguish earlier checkpoints from final verification."
+    "version": "0.28.0",
+    "commit": "0.28.0 DOS compatibility update (see docs/releases/0.28.0.md)",
+    "kernel_sha256": "ff11193faa0d3e4a1f6761a416f55a6aba1bcc06cab7790712898f8dea90ce9f",
+    "environment": "QEMU i386, CPU 486, 64 MiB RAM; disposable FAT16 images. 82 Working entries re-verified with scripted workflows and 41 targeted entries retested on this build on 2026-11-22; other entries retain historical evidence."
   },
   "details": "details.md",
   "apps": [
@@ -39,8 +39,9 @@
       "kind": "utility",
       "summary": "Help, exact short-file text, redirected stdin and 24-line paging/quit verified.",
       "anchor": "freedos-more",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "freedos-fc",
@@ -50,8 +51,9 @@
       "kind": "utility",
       "summary": "Equal/different text and `/B` binary comparisons produce the correct results.",
       "anchor": "freedos-fc",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "fdbanner",
@@ -61,8 +63,9 @@
       "kind": "utility",
       "summary": "Coloured banner rendered through BIOS text services; screenshot checked.",
       "anchor": "fdbanner",
-      "evidence": "2026-10-23-retest-026-fdbanner.png",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026-fdbanner.png"
     },
     {
       "id": "b64",
@@ -72,8 +75,9 @@
       "kind": "utility",
       "summary": "Help, Base64 encoding of `ABCD` and decoding of `QUJDRA==` are byte-exact.",
       "anchor": "b64",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "bsum",
@@ -83,8 +87,9 @@
       "kind": "utility",
       "summary": "Text, empty-file and 20 KiB binary checksums match an independent oracle; usage and missing-file errors verified.",
       "anchor": "bsum",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "semware-tse",
@@ -94,8 +99,9 @@
       "kind": "application",
       "summary": "Physical keyboard editing works: inserted `z` at the start of INPUT.TXT, saved with Ctrl+K S, exited with Alt+X, and reopened. mtools confirmed persisted `zpear` followed by the original remaining lines.",
       "anchor": "semware-tse-250e",
-      "evidence": "2026-10-23-int10-semware-reopened.png",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-int10-semware-reopened.png"
     },
     {
       "id": "semware-grep",
@@ -105,8 +111,9 @@
       "kind": "utility",
       "summary": "Finds exactly the two `apple` lines in the fixture.",
       "anchor": "semware-tse-250e",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "semware-tsort",
@@ -116,8 +123,9 @@
       "kind": "utility",
       "summary": "Sorts four input lines into the expected order.",
       "anchor": "semware-tse-250e",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "sal-sc",
@@ -127,8 +135,9 @@
       "kind": "utility",
       "summary": "Compiles a minimal macro to an 87-byte MAC with the expected signature and message.",
       "anchor": "semware-tse-250e",
-      "evidence": "2026-10-23-retest-026.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-retest-026.txt"
     },
     {
       "id": "visicalc",
@@ -138,8 +147,9 @@
       "kind": "application",
       "summary": "Mode-2 worksheet renders; A1=10, B1=20 and C1=+A1+B1 (30) were saved as TEST.VC, the app exited cleanly, and a fresh launch reopened the sheet with the values and formula intact.",
       "anchor": "visicalc",
-      "evidence": "2026-10-24-visicalc-save-reopen-qemu.json",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-visicalc-save-reopen-qemu.json"
     },
     {
       "id": "ability-plus",
@@ -147,10 +157,11 @@
       "version": "3.0, `AB3.ZIP`",
       "status": "Unsupported",
       "kind": "application",
-      "summary": "Main program stops on x87 `FNINIT`; the installer needs a 32-bit operand.",
+      "summary": "Passes FNINIT (no coprocessor), then stops on a group-7 system instruction other than SMSW (0F 01 at 10EA:2399).",
       "anchor": "ability-plus-30",
-      "evidence": "2026-10-23-visicalc-ability.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-visicalc-ability.txt"
     },
     {
       "id": "pedit",
@@ -182,12 +193,12 @@
       "id": "directory-maven",
       "name": "Directory Maven",
       "version": "1.3",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "application",
-      "summary": "Advances past SHL32, then stops on VGA CRTC OUT 03D4h at 15F3:05A5 (cursor-high index 0Eh).",
+      "summary": "`DM.EXE /sC` passes CRTC 03D4h, scans drive C: and reports \"1 drive(s) scanned\". The interactive manager was not exercised.",
       "anchor": "directory-maven-13",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "previous_evidence": [
         "2026-10-23-maven.txt",
         "2026-10-25-operand32-retests.md"
@@ -212,8 +223,9 @@
       "kind": "utility",
       "summary": "Finds both root and nested matches once; totals and the missing-file result are correct.",
       "anchor": "search-10a",
-      "evidence": "2026-10-23-search-utf8-basic.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-search-utf8-basic.txt"
     },
     {
       "id": "utf8tocp",
@@ -223,8 +235,9 @@
       "kind": "utility",
       "summary": "Exact UTF-8 ↔ CP437 and UTF-8 ↔ CP775 conversions, including Lithuanian letters and CRLF.",
       "anchor": "utf8tocp-20240918",
-      "evidence": "2026-10-23-search-utf8-basic.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-search-utf8-basic.txt"
     },
     {
       "id": "bywater-basic",
@@ -256,8 +269,9 @@
       "kind": "application",
       "summary": "On disposable FAT16 copies, F1 copied AR.COM to COPYTEST.COM byte-for-byte, F2 deleted AR.COM, and F4 renamed AR.COM to AR.BAK. The directory listing and function menu render; originals were unchanged.",
       "anchor": "directory-freedom-461b",
-      "evidence": "2026-10-23-int10-directory-freedom-copy.png",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-int10-directory-freedom-copy.png"
     },
     {
       "id": "costa-gui",
@@ -289,8 +303,9 @@
       "kind": "application",
       "summary": "Original VIEW.DOC verified from start to EOF and back with PgDn/PgUp, Home/End, repeated F2 search and clean Esc. Console redraw corruption fixed. Historical 18% stall remains unreproduced; printing and other formats untested.",
       "anchor": "view-172",
-      "evidence": "2026-10-24-view-pgdn-3.png",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-view-pgdn-3.png"
     },
     {
       "id": "dates",
@@ -322,8 +337,9 @@
       "kind": "utility",
       "summary": "Correct `ManiOS` standard-font banner; `-I 1` prints `20200`.",
       "anchor": "figlet-22",
-      "evidence": "2026-10-23-dosprograms-figlet.png",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-dosprograms-figlet.png"
     },
     {
       "id": "editv",
@@ -333,8 +349,9 @@
       "kind": "application",
       "summary": "Inserted `Z`, moved right, inserted then removed `Y` with Backspace, saved with F2, and reopened. The disposable FAT16 file independently contains `Zalpha one` followed by the original remaining lines.",
       "anchor": "editv-41",
-      "evidence": "2026-10-23-int10-editv-multiedit.png",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-int10-editv-multiedit.png"
     },
     {
       "id": "mined",
@@ -351,12 +368,13 @@
       "id": "as-easy-as",
       "name": "As-Easy-As",
       "version": "5.7, DOS files from archive.org item",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "application",
-      "summary": "FPU probe writes `OUT 0F0h`, then runs `FNINIT`/`FSTSW`; no worksheet.",
+      "summary": "CHKBOOK.WKS and a new sheet open; A1=12, A2=30 and A3 `+A1+A2` shows 42. Input was sent over the serial console: emulated PS/2 keystrokes are ignored. Saving untested.",
       "anchor": "as-easy-as-57",
-      "evidence": "2026-10-23-dosprograms-apps.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-aseasy-formula.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-dosprograms-apps.txt"
     },
     {
       "id": "viewseek",
@@ -377,8 +395,9 @@
       "kind": "utility",
       "summary": "Lists and CRC-tests `KNOWN.ZIP`; extracts all four members including `SUB/THREE.TXT` with exact hashes; `-p` and `FUNZIP` print the correct text.",
       "anchor": "info-zip-unzip-600",
-      "evidence": "2026-10-23-compat4-infozip.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-infozip.txt"
     },
     {
       "id": "info-zip-zip",
@@ -397,10 +416,11 @@
       "version": "1.9b build 7.08.2002, `dosstart.zip`",
       "status": "Unsupported",
       "kind": "application",
-      "summary": "`DANSHELL.EXE` stops on `IN AL,21h` at `1FBB:6B78`; no launcher screen.",
+      "summary": "Passes IN 21h; reports \"DOS Start! requires a VGA screen\" despite the VGA identification calls, then exits.",
       "anchor": "dosstart-19b",
-      "evidence": "2026-10-23-compat4-extra.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-extra.txt"
     },
     {
       "id": "spectra",
@@ -408,10 +428,11 @@
       "version": "1.0, `spec10.zip`",
       "status": "Unsupported",
       "kind": "application",
-      "summary": "`HITECH.EXE` stops on `IN AL,21h` at `1345:2710`; no GUI.",
+      "summary": "Passes IN 21h; the BASIC runtime reports \"Illegal function call in module HITECH at address 1010:0063\".",
       "anchor": "spectra-10",
-      "evidence": "2026-10-23-compat4-extra.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-extra.txt"
     },
     {
       "id": "passwordbox",
@@ -428,23 +449,25 @@
       "id": "champ-galagon",
       "name": "Champ Galagon",
       "version": "1.0 (registered, 1997), `galagon.zip`",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "game",
-      "summary": "Returns to the shell in under 0.6 s with no console output or title screen; no VGA/game frame is reached.",
+      "summary": "Reports no sound card, then draws the title menu and the hall-of-fame attract screen in VGA mode 13h with its palette. Gameplay untested.",
       "anchor": "champ-galagon",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-galagon-menu.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "dr-mind-lite",
       "name": "Dr Mind Lite",
       "version": "LITE variant, 2019, `drlite.zip`",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "game",
-      "summary": "Stops on `OUT 0x3C8` (VGA DAC palette) at `1010:02CA`; no game board.",
+      "summary": "Passes the DAC palette ports and draws the code-breaking board in mode 13h. Gameplay untested.",
       "anchor": "dr-mind-lite",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-drmind-board.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "drobos",
@@ -452,10 +475,11 @@
       "version": "1.3 (DRoboWHOids), `drobos.zip`",
       "status": "Unsupported",
       "kind": "game",
-      "summary": "Stops on x87 opcode `D8` at `1010:0487`; no game screen.",
+      "summary": "Passes x87, the 3DAh word read and the attribute controller, then stops on the VGA graphics controller (word OUT 03CEh).",
       "anchor": "drobos",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "ford-driving-simulator",
@@ -463,10 +487,11 @@
       "version": "1988 models, `ford.zip`",
       "status": "Unsupported",
       "kind": "game",
-      "summary": "Stops on `IN` port `0021h` (PIC) at `1010:10C8`; no simulator screen.",
+      "summary": "Passes IN 21h, then stops on the diskette controller (OUT 03F2h).",
       "anchor": "ford-driving-simulator",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "life2",
@@ -476,8 +501,9 @@
       "kind": "game",
       "summary": "Native timer IRQ0 delivery now executes the installed SOUND handler. Blinker horizontal/vertical/horizontal evolution and Q/Esc exit verified on a disposable FAT16 image. Working for pattern creation, RUN, verified blinker evolution and Q/Esc exit. One earlier marking run reported a BASIC runtime error; its cause remains unresolved. Other patterns/features remain untested.",
       "anchor": "life2",
-      "evidence": "2026-10-24-pit-irq0.md",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-pit-irq0.md"
     },
     {
       "id": "mahjong",
@@ -500,10 +526,10 @@
       "version": "freeware by Jason Hood, `minemay.zip`",
       "status": "Unsupported",
       "kind": "game",
-      "summary": "Advances past PUSHFD, then stops on group-7 system opcode 0F 01 at 1426:2D69.",
+      "summary": "Passes SMSW and the group-7 stop, then runs into the interrupt vector table (stops at 0000:0016).",
       "anchor": "mine-mayhem",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "previous_evidence": [
         "2026-10-23-compat4-games.txt",
         "2026-10-25-operand32-retests.md"
@@ -515,10 +541,11 @@
       "version": "08.02.2000, `nero5.zip`",
       "status": "Unsupported",
       "kind": "game",
-      "summary": "Returns to the shell in under 0.6 s with no console output or menu; BGI EGAVGA 640x480 initialization produces no board.",
+      "summary": "Passes the former silent return and now stops on the VGA graphics controller (OUT 03CEh) while setting up its 640x480 display.",
       "anchor": "nero-5",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "shufflev",
@@ -539,23 +566,25 @@
       "id": "hanoi",
       "name": "Hanoi",
       "version": "1.3 (2000), `hanoi.zip`",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "game",
-      "summary": "LZEXE startup unpacks, then stops on `IN` port `0006h` at `115B:0603`; no board.",
+      "summary": "Automatic play with 3 disks moves the tower from 1 to 3 in the 7 steps needed and asks to play again. User play untested.",
       "anchor": "hanoi",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-hanoi-solved.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "typefast",
       "name": "TypeFast",
       "version": "typing drill, `typefast.zip`",
-      "status": "Broken",
+      "status": "Partial",
       "kind": "game",
-      "summary": "Starts and remains running, but the console stays blank; no prompts or game screen appear, so no task is completed.",
+      "summary": "Instructions, level menu and level 1 run: words fall and misses are counted. Scoring a hit was not verified.",
       "anchor": "typefast",
-      "evidence": "2026-10-23-compat4-games.txt",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-typefast-play.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-compat4-games.txt"
     },
     {
       "id": "zork1",
@@ -565,8 +594,9 @@
       "kind": "game",
       "summary": "ZIP 2.00 starts the story; room text, commands, inventory, score, save/restore and quit work. The status line still clips its right edge.",
       "anchor": "zork-i-the-great-underground-empire",
-      "evidence": "2026-10-23-text-adventures.json",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-text-adventures.json"
     },
     {
       "id": "adventure-350",
@@ -576,8 +606,9 @@
       "kind": "game",
       "summary": "Starts, accepts a 20-character instructions answer, and completes look, inventory, movement and quit; the quit score is 32/350.",
       "anchor": "adventure-350-point-decus-port",
-      "evidence": "2026-10-23-text-adventures.json",
-      "last_tested": "2026-10-23"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-23-text-adventures.json"
     },
     {
       "id": "planetfall-sampler",
@@ -598,8 +629,9 @@
       "kind": "utility",
       "summary": "With the test disk mounted as A: (FIND selects A: before opening relative paths), exact, case-insensitive and inverted searches return the expected lines; a missing file reports `No such file`.",
       "anchor": "freedos-find-01nov2003",
-      "evidence": "2026-10-24-wave2-fixup.txt",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-wave2-fixup.txt"
     },
     {
       "id": "freedos-attrib",
@@ -609,8 +641,9 @@
       "kind": "utility",
       "summary": "Lists FAT attributes and persists `+R`/`-R`; a fresh DOS execution reads the changed state and `mattrib` independently confirms it on disk.",
       "anchor": "freedos-attrib",
-      "evidence": "2026-10-24-wave2-fixup.txt",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-wave2-fixup.txt"
     },
     {
       "id": "freedos-deltree",
@@ -620,8 +653,9 @@
       "kind": "utility",
       "summary": "Six guest cases passed on disposable FAT16 images: confirmed nested deletion, cancellation, /Y root-safety confirmation, root guard, and missing-target handling. The unrelated KEEP.TXT and OTHER survived.",
       "anchor": "freedos-deltree",
-      "evidence": "2026-10-25-dosrun-vchoice-deltree.txt",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-dosrun-vchoice-deltree.txt"
     },
     {
       "id": "freedos-mem",
@@ -631,8 +665,8 @@
       "kind": "utility",
       "summary": "Default report correctly shows conventional 640K total/64K used/576K free, reserved 384K and XMS 8192K. Other options untested.",
       "anchor": "freedos-mem",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "previous_evidence": [
         "2026-10-24-wave2-fixup.txt",
         "2026-10-25-operand32-retests.md"
@@ -657,8 +691,9 @@
       "kind": "utility",
       "summary": "Reads the BIOS video geometry from the initialized BDA, clears the visible VGA text screen, and returns to the redrawn ManiOS prompt.",
       "anchor": "freedos-vcls",
-      "evidence": "2026-10-24-wave2-fixup.txt",
-      "last_tested": "2026-10-24"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-24-wave2-fixup.txt"
     },
     {
       "id": "pc-write",
@@ -675,23 +710,25 @@
       "id": "pc-calc",
       "name": "PC-Calc",
       "version": "PC-Calc+ 2.0 (PC-SIG disk 199)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "application",
-      "summary": "The worksheet executable stops at unsupported opcode DB (2E03:00CF) before a usable spreadsheet opens.",
+      "summary": "The empty worksheet and edit line open; typed cell contents cannot be committed with Enter (PS/2 or serial), so no calculation is verified.",
       "anchor": "pc-calc",
-      "evidence": "2026-10-25-vintage-app-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-pc-calc.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-vintage-app-tests.md"
     },
     {
       "id": "pc-file",
       "name": "PC-File",
       "version": "PC-File+ (PC-SIG disk 5; release unverified)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "application",
-      "summary": "The executable stops at unsupported opcode F0 (0000:0024) before a usable database screen opens.",
+      "summary": "Passes the former F0 stop and shows the PC-File title screen; database functions were not exercised.",
       "anchor": "pc-file",
-      "evidence": "2026-10-25-vintage-app-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-pc-file.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-vintage-app-tests.md"
     },
     {
       "id": "qedit",
@@ -701,8 +738,9 @@
       "kind": "application",
       "summary": "Inserted `EDITED ` at the start of INPUT.TXT, saved with Ctrl+K S, exited with Alt+X, reopened it, and verified the exact 32 bytes on FAT16.",
       "anchor": "qedit",
-      "evidence": "2026-10-25-text-editors-workflow.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-text-editors-workflow.md"
     },
     {
       "id": "ted",
@@ -712,8 +750,9 @@
       "kind": "application",
       "summary": "Inserted `EDITED ` at the start of INPUT.TXT, saved with F7, exited, reopened it, and verified the exact 32 bytes on FAT16.",
       "anchor": "ted",
-      "evidence": "2026-10-25-text-editors-workflow.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-text-editors-workflow.md"
     },
     {
       "id": "turbo-pascal-30",
@@ -723,8 +762,9 @@
       "kind": "application",
       "summary": "Created HELLO.PAS in the IDE, saved it on FAT16, compiled and ran it (`TP3 works`), reopened the source, and exited to the ManiOS shell.",
       "anchor": "turbo-pascal-30",
-      "evidence": "2026-10-25-turbo-pascal-test.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-turbo-pascal-test.md"
     },
     {
       "id": "edlin",
@@ -741,12 +781,13 @@
       "id": "galaxy-lite",
       "name": "Galaxy Lite",
       "version": "1.5 (PC-SIG disk 2318)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "application",
-      "summary": "Passes the previous BOUND stop, then faults on opcode `00` at `0000:E003` before the editor opens.",
+      "summary": "Passes the former opcode-00 stop and shows the evaluation notice screen; the editor workflow was not exercised.",
       "anchor": "galaxy-lite",
-      "evidence": "2026-10-25-into-retests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-galaxy-lite.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-into-retests.md"
     },
     {
       "id": "dos-navigator",
@@ -774,12 +815,13 @@
       "id": "gw-basic-323",
       "name": "GW-BASIC",
       "version": "3.23 (1988; GWBASIC.EXE)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "application",
-      "summary": "Shows the `Ok` prompt, then stops on opcode EC / unsupported IN port 0201 when keyboard input begins; no statement is accepted.",
+      "summary": "`PRINT 2+3*4` prints 14; a FOR/NEXT program entered and RUN prints 1, 4, 9; SYSTEM returns to ManiOS. SAVE/LOAD untested.",
       "anchor": "gw-basic-323",
-      "evidence": "2026-10-25-basic-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-basic-tests.md"
     },
     {
       "id": "microsoft-basic-528",
@@ -787,10 +829,11 @@
       "version": "5.28 (MSBASIC.COM, 1983-05-24)",
       "status": "Broken",
       "kind": "application",
-      "summary": "The tested COM binary returns to the ManiOS shell without a BASIC prompt or usable screen.",
+      "summary": "Now runs into the interrupt vector table (stops at 0000:0016); no BASIC prompt.",
       "anchor": "microsoft-basic-528",
-      "evidence": "2026-10-25-basic-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-basic-tests.md"
     },
     {
       "id": "vde",
@@ -811,8 +854,9 @@
       "kind": "application",
       "summary": "Opened a FAT16 text file, displayed known content, and exited with F10.",
       "anchor": "vern-buerg-list-71a",
-      "evidence": "2026-10-25-aam-fix-retests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-aam-fix-retests.md"
     },
     {
       "id": "microemacs-39",
@@ -822,8 +866,9 @@
       "kind": "application",
       "summary": "Typed and edited `hellomanios!`, saved, exited and reopened it; FAT16 contents matched exactly (`hellomanios!` + CRLF).",
       "anchor": "microemacs-39",
-      "evidence": "2026-10-25-microemacs-pc-outline.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-microemacs-pc-outline.md"
     },
     {
       "id": "pc-outline-334",
@@ -877,8 +922,9 @@
       "kind": "utility",
       "summary": "Correctly reports zero mismatches for equal Intel HEX files and one mismatch at address `000D` for a one-byte difference.",
       "anchor": "comphex",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "hexbin",
@@ -888,8 +934,9 @@
       "kind": "utility",
       "summary": "Converts binary data to checksummed Intel HEX and back; the 14-byte FAT16 fixture round-trips byte-exactly.",
       "anchor": "hexbin",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "ascify13",
@@ -899,8 +946,9 @@
       "kind": "utility",
       "summary": "Encoded the binary fixture as an ASCIFY text file and decoded it to an exact 14-byte match.",
       "anchor": "ascify-13",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "format83",
@@ -910,8 +958,9 @@
       "kind": "utility",
       "summary": "Writes the fixture as valid Intel HEX records to standard output; data-record and EOF checksums validate.",
       "anchor": "format83",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "makeuu11",
@@ -921,8 +970,9 @@
       "kind": "utility",
       "summary": "Generated a self-decoding BAT with a UU payload that independently decodes to the exact 14-byte input; running the BAT with DEBUG was not tested.",
       "anchor": "makeuue-11",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "mime64d",
@@ -932,19 +982,21 @@
       "kind": "utility",
       "summary": "Decoded a MIME Base64 attachment byte-exactly and decoded the package sample into a ZIP that passes CRC testing.",
       "anchor": "mime64-revision-d",
-      "evidence": "2026-10-25-decode-utilities.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-decode-utilities.md"
     },
     {
       "id": "numconv",
       "name": "NUMCONV",
       "version": "`NUMCONV.EXE` (COAST archive dated 1988)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "utility",
-      "summary": "The interactive converter stops on unsupported VGA CRTC I/O port `03D4` (`OUT`); number conversion was not reached.",
+      "summary": "Title, menu and system choice work; at the number prompt typed digits are ignored on both the PS/2 and serial paths, so no conversion is shown.",
       "anchor": "numconv",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "hexdec",
@@ -954,19 +1006,21 @@
       "kind": "utility",
       "summary": "Decimal values `27 78 255` convert to `1B 4E FF`, and decoding them returns `27 78 255`.",
       "anchor": "hex-and-dec",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "eval-calculator",
       "name": "EVAL",
       "version": "`EVAL.EXE` (COAST archive dated 1987)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "utility",
-      "summary": "The command-line expression test stops at unsupported x87 opcode `DB` before producing a result.",
+      "summary": "`2+3`, `7/2`, `2*3.25` and `10-4` print 5, 3.5, 6.5 and 6. With no coprocessor present it uses its own floating-point emulation.",
       "anchor": "eval",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "calculat",
@@ -976,30 +1030,33 @@
       "kind": "utility",
       "summary": "Interactive expression `2+3` produces `5.000000`; an empty Return exits to ManiOS.",
       "anchor": "calculat",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "balis-calc",
       "name": "Bali’s Calc",
       "version": "1995 shareware release; version unverified",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "utility",
-      "summary": "The calculator stops on unsupported VGA CRTC I/O port `03D4` during startup, before usable input.",
+      "summary": "The calculator renders; keyboard entry `12+30=` shows 42, then `*2=` shows 84, and Esc returns to ManiOS.",
       "anchor": "balis-calc",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-balicalc-84.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "calc-100",
       "name": "CALC",
       "version": "1.00 (1994)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "utility",
-      "summary": "The command-line test `2+3` stops on unsupported I/O port `00F0` (`OUT`) before calculating.",
+      "summary": "After the shareware notice, `CALC.EXE 2+3` prints `5.00000`; passes the former OUT 00F0h stop. The notice needs Return pressed twice (the first key is swallowed).",
       "anchor": "calc",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "kycalc-207",
@@ -1007,10 +1064,11 @@
       "version": "2.07 (1987)",
       "status": "Unsupported",
       "kind": "utility",
-      "summary": "Nonresident startup (`/n`) stops at unsupported x87 opcode `DB` before the calculator screen opens.",
+      "summary": "Passes the x87 stop and loads its resident part (hotkey Ctrl+Alt+K), but a TSR cannot remain resident after dosrun exits.",
       "anchor": "kycalc-scientific-vector-calculator",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "vecalc-111",
@@ -1053,8 +1111,8 @@
       "kind": "utility",
       "summary": "Selection launches ACTION.COM, returns to the menu and exits; exact EXEMENU CHILD OK marker persists on disk. BAT/BAS dispatch untested.",
       "anchor": "exemenu",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "previous_evidence": [
         "2026-10-25-exemenu-investigation.md",
         "2026-10-25-operand32-retests.md"
@@ -1066,10 +1124,11 @@
       "version": "2.1 (1992–1994)",
       "status": "Unsupported",
       "kind": "utility",
-      "summary": "The program reports that MS-DOS 5.0 or newer is required, then stops on unsupported VGA CRTC I/O port `03D4`; no menu opens.",
+      "summary": "Passes CRTC 03D4h and reports \"MS-DOS version 5.0 or higher is required\"; dosrun reports DOS 4.00.",
       "anchor": "menumate",
-      "evidence": "2026-10-25-calculator-menu-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-calculator-menu-tests.md"
     },
     {
       "id": "catdisk-30",
@@ -1101,8 +1160,9 @@
       "kind": "utility",
       "summary": "Toggled the wide-format option and exited; `SETFILE.BAT` was written to FAT16 with the exact line `SET DIRCMD=/w`.",
       "anchor": "directory-commander",
-      "evidence": "2026-10-25-catalog-utility-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-catalog-utility-tests.md"
     },
     {
       "id": "diary-com",
@@ -1123,19 +1183,21 @@
       "kind": "utility",
       "summary": "Converted stdin text `ABC 123` to stdout bytes `C1 C2 C3 40 F1 F2 F3` (EBCDIC); checked the raw output stream.",
       "anchor": "asc2ebc",
-      "evidence": "2026-10-25-catalog-utility-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-catalog-utility-tests.md"
     },
     {
       "id": "cylon4",
       "name": "CYLON4",
       "version": "Cursor variants documented 1986; archive updated 1988-10",
-      "status": "Working",
+      "status": "Unsupported",
       "kind": "utility",
-      "summary": "The EGA variant returns to the shell and changes the cursor from a flat underline to the documented animated wave. Other adapter variants were not tested.",
+      "summary": "A terminate-and-stay-resident cursor animator. The EGA variant now passes VGA CRTC 03D4h and its TSR call ends the program, but nothing stays resident after dosrun exits, so no animated cursor remains. The 2026-10-25 Working entry was misclassified: that run had stopped on OUT 03D4h.",
       "anchor": "cylon4",
-      "evidence": "2026-10-25-catalog-utility-tests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-catalog-utility-tests.md"
     },
     {
       "id": "lzwpc",
@@ -1145,8 +1207,9 @@
       "kind": "utility",
       "summary": "Compressed and restored a 55-byte mixed text/binary fixture; the restored FAT16 file matched the original SHA-256.",
       "anchor": "lzwcom--lzwunc",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "rle16-sc",
@@ -1156,8 +1219,9 @@
       "kind": "utility",
       "summary": "Compressed and restored a mixed text/binary fixture; the output file matched all 55 input bytes.",
       "anchor": "rle16",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "sqpc131",
@@ -1167,8 +1231,9 @@
       "kind": "utility",
       "summary": "Squeezed and unsqueezed a mixed text/binary fixture; restored FAT16 bytes matched the source exactly.",
       "anchor": "sqpc-131",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "addcr-10",
@@ -1189,8 +1254,9 @@
       "kind": "text-processing",
       "summary": "Converted an input file to uppercase and reported 5 words in 2 lines; output bytes matched the expected content.",
       "anchor": "case-31",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "change17",
@@ -1211,8 +1277,9 @@
       "kind": "text-processing",
       "summary": "Converted CRLF text to LF in place; host extraction matched the expected 11-byte result.",
       "anchor": "doscvt-24",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "findline-100",
@@ -1222,8 +1289,9 @@
       "kind": "utility",
       "summary": "Found the requested phrase and printed the matching text on line 2.",
       "anchor": "findline",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "cut-101",
@@ -1233,8 +1301,9 @@
       "kind": "utility",
       "summary": "Extracted fields 1 and 3 from two CSV rows and formatted them as one:three and four:six.",
       "anchor": "cut-field-cut-utility",
-      "evidence": "2026-10-25-batch-101-110.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-101-110.md"
     },
     {
       "id": "concat-10",
@@ -1266,8 +1335,9 @@
       "kind": "utility",
       "summary": "Deleted the zero-byte test file and preserved a non-empty control file on the disposable FAT16 disk.",
       "anchor": "0del",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "brik-20",
@@ -1288,19 +1358,21 @@
       "kind": "utility",
       "summary": "Matched the package’s documented checksum and byte count for CHKSUM.EXE (56755e1f, 11198 bytes).",
       "anchor": "chksum",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "chop-31",
       "name": "CHOP",
       "version": "3.1 (1986/1987)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "utility",
-      "summary": "The file-split operation stops at unsupported VGA output: OUT port 03D4 at 15F1:05D7; no parts are created.",
+      "summary": "`CHOP31.EXE IN.TXT -P3 -X -Z` wrote IN.1, IN.2 and IN.3 (10+10+9 bytes) that rebuild the 29-byte input exactly. With a `C:/IN.TXT` argument it prints the plan but reports \"File not found\" and writes no parts.",
       "anchor": "chop",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "easter-12",
@@ -1310,8 +1382,9 @@
       "kind": "calculator",
       "summary": "Calculated Easter 2001 as Sunday, April 15, matching the published calendar date.",
       "anchor": "easter",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "expr-vi2",
@@ -1321,8 +1394,9 @@
       "kind": "calculator",
       "summary": "Evaluated `2 + 3 * 4` as 14, respecting multiplication precedence.",
       "anchor": "expr",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "bob-110",
@@ -1343,8 +1417,9 @@
       "kind": "file-manager",
       "summary": "Listed the FAT16 C: root directory through its “Actual Disk Directory” operation; output included DIR4’s generated data/config files.",
       "anchor": "dir4",
-      "evidence": "2026-10-25-batch-111-119.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-111-119.md"
     },
     {
       "id": "cleanse-11",
@@ -1354,8 +1429,9 @@
       "kind": "text-processing",
       "summary": "Removed a suspicious control byte and converted LF lines to CRLF in the output file.",
       "anchor": "cleanse",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "chktxt-200",
@@ -1365,8 +1441,9 @@
       "kind": "text-processing",
       "summary": "Removed a suspicious control byte, normalized line endings and appended the documented DOS EOF marker.",
       "anchor": "chktxt",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "getlines-10",
@@ -1376,8 +1453,9 @@
       "kind": "text-processing",
       "summary": "Selected line 2 from a three-line file and displayed its line number and content.",
       "anchor": "getlines",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "wordcnt",
@@ -1387,19 +1465,21 @@
       "kind": "text-processing",
       "summary": "Counted three words across two input lines.",
       "anchor": "wordcnt",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "compare-16",
       "name": "@Compare",
       "version": "1.6 (1994)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "text-processing",
-      "summary": "The comparison UI cannot start because the program writes to unsupported VGA CRTC port 03D4 at 1577:0598.",
+      "summary": "Side-by-side comparison of A.TXT and B.TXT renders both files, marks the matching lines and reports \"The files contain one mismatch.\"",
       "anchor": "compare-16",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-compare-16.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "findstr-101",
@@ -1442,8 +1522,9 @@
       "kind": "game",
       "summary": "Opened the electronic dice screen and rendered a one-die roll; escape was sent to exit.",
       "anchor": "edice",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "random1",
@@ -1453,19 +1534,21 @@
       "kind": "educational",
       "summary": "Generated two lottery lines with five unique regular numbers in 1–50 and one bonus number in 1–25.",
       "anchor": "random",
-      "evidence": "2026-10-25-batch-120-129.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-120-129.md"
     },
     {
       "id": "ana015",
       "name": "ANA",
       "version": "0.15 (1990-07-24)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "file-utility",
-      "summary": "The analyzer does not start: `dosrun` reports unsupported opcode `DB` at 1667:00F1.",
+      "summary": "Starts and prints its banner; `--help` is not an option and it reports \"Cannot open --help\". The analysis itself was not exercised.",
       "anchor": "ana",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "carve-20a",
@@ -1475,8 +1558,9 @@
       "kind": "file-utility",
       "summary": "Split a 2,500-byte FAT16 file and rejoined it byte-for-byte (SHA-256 verified).",
       "anchor": "carve",
-      "evidence": "2026-10-25-aam-fix-retests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-aam-fix-retests.md"
     },
     {
       "id": "bob-dump-10",
@@ -1486,8 +1570,9 @@
       "kind": "file-utility",
       "summary": "Created a readable hex dump of a six-byte FAT16 input; extracted output exactly represented `41 42 43 44 0D 0A`.",
       "anchor": "bobs-file-dump-program",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "comt-010d",
@@ -1497,19 +1582,21 @@
       "kind": "file-conversion",
       "summary": "Wrapped HELLO.COM as plain text and decoded it with the documented `-x` form; decoded COM bytes matched the original exactly.",
       "anchor": "comt",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "cqvert-9571",
       "name": "CQvert",
       "version": "95.7.1 (1995-08-13 archive)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "text-processing",
-      "summary": "The WWW-form conversion does not start: ManiOS reports unsupported VGA `OUT` port 03D4 at 115C:058D.",
+      "summary": "Converted the URL-encoded form `name=Zyg+Test&value=one%2Btwo%26three%3D4` to OUT.TXT as `name=Zyg Test` / `value=one+two&three=4`; checked on the FAT16 image.",
       "anchor": "cqvert",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "filecomp",
@@ -1528,10 +1615,11 @@
       "version": "1.0 (1988-02-15 archive)",
       "status": "Unsupported",
       "kind": "file-utility",
-      "summary": "The copy menu begins, but execution stops on unsupported VGA OUT port 03D4 at 10D4:058C before a copy can be verified.",
+      "summary": "Passes CRTC 03D4h, asks for the target, shows sizes and starts copying, then stops on INSB (6Ch).",
       "anchor": "copyem",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "anywhere",
@@ -1541,8 +1629,9 @@
       "kind": "file-search",
       "summary": "Found TARGET.TXT at the FAT16 root and in the existing NESTED directory during name search.",
       "anchor": "anywhere",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "chunt-10",
@@ -1552,8 +1641,9 @@
       "kind": "file-search",
       "summary": "Found COMMFILE.TXT by partial filename match and reported one matching file.",
       "anchor": "chunt",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "unusual",
@@ -1563,8 +1653,9 @@
       "kind": "file-utility",
       "summary": "Recursively scanned the FAT16 tree and reported no unusual (hidden, system, or read-only) files in the clean test image.",
       "anchor": "unusual",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "vtreehp",
@@ -1574,19 +1665,20 @@
       "kind": "file-manager",
       "summary": "Printed a visual tree of FAT16 directories, including nested ManiOS test folders.",
       "anchor": "vtreehp",
-      "evidence": "2026-10-25-batch-130-140.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-130-140.md"
     },
     {
       "id": "cpuid-593",
       "name": "CPUID",
       "version": "5.93 (1991-07-02 archive)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "system-information",
-      "summary": "Advances beyond old operand-size stop, then reaches x87 DB at 1000:028C.",
+      "summary": "Reports \"This system has a i486 SX microprocessor\", which matches the emulated CPU (486 class, no coprocessor).",
       "anchor": "cpuid",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "previous_evidence": [
         "2026-10-25-batch-141-150.md"
       ]
@@ -1595,23 +1687,25 @@
       "id": "dosinfo-13",
       "name": "DOSINFO",
       "version": "1.3 (1996-02-19 archive)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "system-information",
-      "summary": "Starts its banner, then stops on unsupported VGA `OUT` port 03D4 at 11EC:0598.",
+      "summary": "The full report renders (DOS 4.00, date, free memory, drives). Its drive sizes are dosrun placeholders (8 MiB per drive), not the volumes.",
       "anchor": "dosinfo",
-      "evidence": "2026-10-25-batch-141-150.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-dosinfo-13.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-141-150.md"
     },
     {
       "id": "mem-30",
       "name": "MEM",
       "version": "3.0 (1988-04-04 archive)",
-      "status": "Unsupported",
+      "status": "Partial",
       "kind": "system-information",
-      "summary": "Stops on unsupported VGA `OUT` port 03D4 before its memory and drive report is complete.",
+      "summary": "Memory map and drive panel render; DOS memory figures are plausible, but drive sizes are dosrun placeholders (8 MiB per drive).",
       "anchor": "mem",
-      "evidence": "2026-10-25-batch-141-150.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-mem-30.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-141-150.md"
     },
     {
       "id": "memmap-2",
@@ -1621,8 +1715,9 @@
       "kind": "system-information",
       "summary": "Renders a memory-block row (segment 1000, 589,824 bytes, type Program) and returns to the shell after the DOS INT 21h vector-chain fix.",
       "anchor": "memmap",
-      "evidence": "2026-10-25-into-retests.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-into-retests.md"
     },
     {
       "id": "show-314",
@@ -1630,10 +1725,11 @@
       "version": "3.14 (1989-07-25 archive)",
       "status": "Partial",
       "kind": "system-information",
-      "summary": "No-argument invocation displays the documented command/help list. Requesting `SHOW PC` stops at unsupported `OUT` port 0070.",
+      "summary": "Help works; `SHOW PC` now passes the CMOS clock but ends with run-time error R6003 (integer divide by zero).",
       "anchor": "show",
-      "evidence": "2026-10-25-batch-141-150.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-141-150.md"
     },
     {
       "id": "space-3",
@@ -1653,12 +1749,13 @@
       "id": "sysid-52",
       "name": "SYSID",
       "version": "5.2 (1991-11-21 archive)",
-      "status": "Unsupported",
+      "status": "Working",
       "kind": "system-information",
-      "summary": "The multi-screen system survey stops on unsupported VGA `OUT` port 03D4 at 1B33:058C.",
+      "summary": "The 15-page system report renders (CPU 80486, machine status word 0000, no coprocessor, memory, MCB chain); PgDn, End and Esc work.",
       "anchor": "sysid",
-      "evidence": "2026-10-25-batch-141-150.md",
-      "last_tested": "2026-10-25"
+      "evidence": "2026-11-22-028-sysid-page1.png",
+      "last_tested": "2026-11-22",
+      "previous_evidence": "2026-10-25-batch-141-150.md"
     },
     {
       "id": "status-21",
@@ -1749,12 +1846,13 @@
       "kind": "archiver",
       "summary": "Created and listed TEST.ARJ, extracted INPUT.TXT, and compared the extracted FAT16 bytes to the fixture after QEMU shutdown; exact match.",
       "anchor": "arj",
-      "evidence": "2026-10-25-batch-151-160.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/arj.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/arj/20250409.8/index.html",
       "license": "GNU General Public License, version 2",
-      "archive_sha256": "70c6eb04162bab3928137fcfed0672af41291f2f6826cf61db5cae0aa9aa3e1e"
+      "archive_sha256": "70c6eb04162bab3928137fcfed0672af41291f2f6826cf61db5cae0aa9aa3e1e",
+      "previous_evidence": "2026-10-25-batch-151-160.md"
     },
     {
       "id": "marathon-bz2",
@@ -1779,12 +1877,13 @@
       "kind": "utility",
       "summary": "Printed the March 2000 calendar, with March 1 on Wednesday and day 31 present.",
       "anchor": "cal",
-      "evidence": "2026-10-25-batch-151-160.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/cal.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/cal/20250409.8/index.html",
       "license": "Freeware with source",
-      "archive_sha256": "ee05b828b322908217ff422bc007dfb761931ae63d58d7c5eedff528e02b337e"
+      "archive_sha256": "ee05b828b322908217ff422bc007dfb761931ae63d58d7c5eedff528e02b337e",
+      "previous_evidence": "2026-10-25-batch-151-160.md"
     },
     {
       "id": "marathon-cabext",
@@ -1839,12 +1938,13 @@
       "kind": "utility",
       "summary": "Reported 16,098 bytes for the FAT16 root; this matched the 16,074-byte DU executable plus the 24-byte fixture.",
       "anchor": "du",
-      "evidence": "2026-10-25-batch-151-160.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/du.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/du/20250409.8/index.html",
       "license": "GNU General Public License, Version 2",
-      "archive_sha256": "cfaf8960e9493e99480d33008ba485f1f871cfd281bd6835b88e8e1e6636b714"
+      "archive_sha256": "cfaf8960e9493e99480d33008ba485f1f871cfd281bd6835b88e8e1e6636b714",
+      "previous_evidence": "2026-10-25-batch-151-160.md"
     },
     {
       "id": "marathon-dosutil",
@@ -1854,12 +1954,13 @@
       "kind": "utility",
       "summary": "The DOSUTIL printf command printed HELLO.",
       "anchor": "dosutil",
-      "evidence": "2026-10-25-batch-161-170.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/util/dosutil.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/util/dosutil/20260313.7/index.html",
       "license": "European Union Public License v1.1",
-      "archive_sha256": "33d57d1d3c4573f68c72dcd9a519fb38e9d946c78ea7060748fd927e779daa9c"
+      "archive_sha256": "33d57d1d3c4573f68c72dcd9a519fb38e9d946c78ea7060748fd927e779daa9c",
+      "previous_evidence": "2026-10-25-batch-161-170.md"
     },
     {
       "id": "marathon-foxcalc",
@@ -1882,10 +1983,10 @@
       "version": "0.16a",
       "status": "Unsupported",
       "kind": "file-viewer",
-      "summary": "Advances past PUSHFD, then reaches SMSW AX (0F 01 E0); primary application workflow remains unavailable.",
+      "summary": "Embedded CWSDPMI DOS extender: passes SMSW, obtains XMS memory, then stops reprogramming the interrupt controller (OUT 20h, ICW1) on its way into protected mode, which dosrun does not provide.",
       "anchor": "foxtype",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/util/foxtype.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/util/foxtype/20250409.9/index.html",
       "license": "GNU General Public License, Version 2",
@@ -1903,8 +2004,8 @@
       "kind": "utility",
       "summary": "Relative and drive-qualified input files produce 4, 156 and 3.1428 for the tested calculations.",
       "anchor": "gnu-bc",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/gnubc.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/gnubc/20250410.0/index.html",
       "license": "GNU General Public License, Version 2",
@@ -1921,8 +2022,8 @@
       "kind": "utility",
       "summary": "Complete serial transcript contains the expected beta target match.",
       "anchor": "gnu-grep",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/grep.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/grep/20251129.2/index.html",
       "license": "GNU General Public License, Version 2",
@@ -1939,12 +2040,13 @@
       "kind": "archiver",
       "summary": "Compressed and decompressed the file; mcopy plus host comparison confirmed exact bytes. The DOS 8.3 names were INPUT.TXz and INPUT.TX.",
       "anchor": "gzip",
-      "evidence": "2026-10-25-batch-161-170.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/gzip.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/gzip/20250409.9/index.html",
       "license": "GNU General Public License, Version 2",
-      "archive_sha256": "d086eafc5bf021d6c7a96af7d9c33b34680fa24c293c3052791751329321e94f"
+      "archive_sha256": "d086eafc5bf021d6c7a96af7d9c33b34680fa24c293c3052791751329321e94f",
+      "previous_evidence": "2026-10-25-batch-161-170.md"
     },
     {
       "id": "marathon-head",
@@ -1954,8 +2056,8 @@
       "kind": "file-viewer",
       "summary": "Complete serial transcript contains all three fixture lines, including on the earlier build. No HEAD regression was reproduced.",
       "anchor": "head",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/head.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/head/20250409.9/index.html",
       "license": "GNU General Public License, Version 2",
@@ -1985,10 +2087,10 @@
       "version": "2006-10-09a",
       "status": "Unsupported",
       "kind": "archiver",
-      "summary": "Advances past PUSHFD, then reaches SMSW AX (0F 01 E0); primary application workflow remains unavailable.",
+      "summary": "Embedded CWSDPMI DOS extender: passes SMSW, obtains XMS memory, then stops reprogramming the interrupt controller (OUT 20h, ICW1) on its way into protected mode. No TEST.LZH.",
       "anchor": "lha",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/lha.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/lha/20250410.0/index.html",
       "license": "Open Source, see license.txt",
@@ -2034,10 +2136,10 @@
       "version": "1.04",
       "status": "Unsupported",
       "kind": "archiver",
-      "summary": "Advances past PUSHFD, then reaches SMSW AX (0F 01 E0); primary application workflow remains unavailable.",
+      "summary": "Embedded CWSDPMI DOS extender: passes SMSW, obtains XMS memory, then stops reprogramming the interrupt controller (OUT 20h, ICW1) on its way into protected mode.",
       "anchor": "lzop",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/lzop.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/lzop/20250410.0/index.html",
       "license": "GNU General Public License, Version 2",
@@ -2088,12 +2190,13 @@
       "kind": "calculator",
       "summary": "Displayed the calculator interface, returned 4 for 2+2, and Esc returned to the ManiOS shell.",
       "anchor": "rcal",
-      "evidence": "2026-10-25-batch-171-180.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/util/rcal.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/util/rcal/20250410.0/index.html",
       "license": "MIT License",
-      "archive_sha256": "48079e2c5ece14ace8c9d8802fb5347a83437ede692567a0f35134988a424ec5"
+      "archive_sha256": "48079e2c5ece14ace8c9d8802fb5347a83437ede692567a0f35134988a424ec5",
+      "previous_evidence": "2026-10-25-batch-171-180.md"
     },
     {
       "id": "marathon-stamp",
@@ -2163,12 +2266,13 @@
       "kind": "utility",
       "summary": "With the package’s _TEE.EXE and NLS/tee.en files installed, printed HELLO and created OUTPUT.TXT; mcopy read back the exact bytes HELLO plus CR.",
       "anchor": "tee",
-      "evidence": "2026-10-25-batch-171-180.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/tee.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/tee/20260218.6/index.html",
       "license": "GNU General Public License, Version 2",
-      "archive_sha256": "c1e392e1212f5431e359506a5d8b44fbc1087d17b1bfdc2a75ae8ae728da4de7"
+      "archive_sha256": "c1e392e1212f5431e359506a5d8b44fbc1087d17b1bfdc2a75ae8ae728da4de7",
+      "previous_evidence": "2026-10-25-batch-171-180.md"
     },
     {
       "id": "marathon-topspin",
@@ -2193,12 +2297,13 @@
       "kind": "utility",
       "summary": "Created a zero-byte TOUCHED.TXT; mdir independently confirmed the FAT16 directory entry.",
       "anchor": "touch",
-      "evidence": "2026-10-25-batch-181-190.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/touch.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/touch/20250410.1/index.html",
       "license": "GNU General Public License, Version 2",
-      "archive_sha256": "3826f5faa516feb70d92ec2d304829c789c1408c740ac37afa6ade2df88e6524"
+      "archive_sha256": "3826f5faa516feb70d92ec2d304829c789c1408c740ac37afa6ade2df88e6524",
+      "previous_evidence": "2026-10-25-batch-181-190.md"
     },
     {
       "id": "marathon-unrar",
@@ -2206,10 +2311,10 @@
       "version": "3.80a",
       "status": "Unsupported",
       "kind": "archiver",
-      "summary": "Advances past PUSHFD, then reaches SMSW AX (0F 01 E0); primary application workflow remains unavailable.",
+      "summary": "Embedded CWSDPMI DOS extender: passes SMSW, obtains XMS memory, then stops reprogramming the interrupt controller (OUT 20h, ICW1) on its way into protected mode.",
       "anchor": "unrar",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/unrar.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/unrar/20250410.0/index.html",
       "license": "Freeware, see license.txt",
@@ -2287,12 +2392,13 @@
       "kind": "utility",
       "summary": "The program asked for confirmation; after y, independent mcopy lookup confirmed DELETE.TXT was absent.",
       "anchor": "xdel",
-      "evidence": "2026-10-25-batch-181-190.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/util/xdel.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/util/xdel/20260411.4/index.html",
       "license": "GNU General Public License, Version 2",
-      "archive_sha256": "0feb5d642cb60f0a8dd8b2e23668e8f400acdbd294a1c32cb118f56f76d728cb"
+      "archive_sha256": "0feb5d642cb60f0a8dd8b2e23668e8f400acdbd294a1c32cb118f56f76d728cb",
+      "previous_evidence": "2026-10-25-batch-181-190.md"
     },
     {
       "id": "marathon-xgrep",
@@ -2302,8 +2408,8 @@
       "kind": "utility",
       "summary": "Relative and drive-qualified searches and anchored regex return the expected matching line; absent pattern returns no match.",
       "anchor": "xgrep",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/xgrep.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/xgrep/20251129.2/index.html",
       "license": "Zero Clause BSD License",
@@ -2338,12 +2444,13 @@
       "kind": "archiver",
       "summary": "Created and listed TEST.ZOO; after removing the original fixture, extracted INPUT.DAT and compared bytes after shutdown; exact match.",
       "anchor": "zoo",
-      "evidence": "2026-10-25-batch-191-200.md",
-      "last_tested": "2026-10-25",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/archiver/zoo.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/archiver/zoo/20250410.1/index.html",
       "license": "Public Domain",
-      "archive_sha256": "f343733dbff0b20b4760eddc9de1c4d20c8e3cdba40afb36703b860bf22cddc4"
+      "archive_sha256": "f343733dbff0b20b4760eddc9de1c4d20c8e3cdba40afb36703b860bf22cddc4",
+      "previous_evidence": "2026-10-25-batch-191-200.md"
     },
     {
       "id": "marathon-localize",
@@ -2396,10 +2503,10 @@
       "version": "9.1.2a",
       "status": "Unsupported",
       "kind": "utility",
-      "summary": "Advances past PUSHFD, then stops on x87 DB at 1016:030C.",
+      "summary": "`/?` now prints the DOS/32A 9.1 banner (no x87 stop), but the extender cannot run 32-bit programs without protected mode.",
       "anchor": "dos32a",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-targeted-retest.md",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/util/dos32a.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/util/dos32a/20250409.8/index.html",
       "license": "Open source, similar to BSD License",
@@ -2477,8 +2584,8 @@
       "kind": "utility",
       "summary": "Zero, one and two-second waits return with appropriate elapsed time; repeated one-second wait also passes.",
       "anchor": "sleep",
-      "evidence": "2026-10-28-bugfix-results.json",
-      "last_tested": "2026-10-28",
+      "evidence": "2026-11-22-028-working-retest.json",
+      "last_tested": "2026-11-22",
       "source": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/unix/sleep.zip",
       "source_page": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/html/en/unix/sleep/20250410.1/index.html",
       "license": "GNU General Public License, Version 2",

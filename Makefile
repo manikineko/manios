@@ -393,6 +393,7 @@ test: $(KERNEL) test-images
 	python3 tests/dosrun_exec_test.py
 	python3 tests/dosrun_runtime_test.py
 	python3 tests/dosrun_port_test.py
+	python3 tests/dosrun_device_test.py
 	python3 tests/dosrun_pit_test.py
 	python3 tests/dosrun_test.py $(KERNEL)
 	python3 tests/driver_test.py $(KERNEL)

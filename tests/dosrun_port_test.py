@@ -74,18 +74,20 @@ int main(void) {
   CHECK(done&&!(c.flags&FLAG_IF));
  }
  puts("PASS: both-polarity bit 0/3 polling loops terminate with interrupts disabled, including counter wrap");
-	uint16_t ports[]={0,6,0x3BA,0x3DB,0xFFFF};
+	uint16_t ports[]={0,6,0x3BA,0x3DC,0xFFFF};
  for(unsigned k=0;k<sizeof(ports)/sizeof(ports[0]);k++) {
   code(in,sizeof(in));c.r[DX]=ports[k];c.r[AX]=0xBEEF;c.flags=0xAD7;
   CHECK(cpu_step(&c)==CPU_FAULT&&c.fault_opcode==0xEC&&c.r[AX]==0xBEEF&&c.flags==0xAD7);
  }
- unsigned char refused[]={0xED,0xEE,0xEF,0xE4,0xE5,0xE6,0xE7};
+ /* A word read of the status register pairs it with the undecoded 3DBh. */
+ {unsigned char w[]={0xED};code(w,1);c.r[DX]=0x3DA;c.r[AX]=0xBEEF;CHECK(cpu_step(&c)==CPU_OK&&(c.r[AX]>>8)==0xFF&&!((c.r[AX]&255)&~9u));}
+ unsigned char refused[]={0xEE,0xEF,0xE4,0xE5,0xE6,0xE7};
  for(unsigned k=0;k<sizeof(refused);k++) {
   unsigned char op[]={refused[k],0xDA};code(op,sizeof(op));c.r[DX]=0x3DA;c.r[AX]=0xBEEF;c.flags=0xAD7;
   CHECK(cpu_step(&c)==CPU_FAULT&&c.fault_opcode==refused[k]&&c.r[AX]==0xBEEF&&c.flags==0xAD7);
  }
  dos_free(d);CHECK(!c.port_in8);code(in,sizeof(in));c.r[DX]=0x3DA;CHECK(cpu_step(&c)==CPU_FAULT);
- cpu_free(&c);puts("PASS: unknown/read-only ports, word I/O and truncated immediate port aliases remain unsupported");
+ cpu_free(&c);puts("PASS: unknown/read-only ports and truncated immediate port aliases remain unsupported; word reads pair byte ports");
  return 0;
 }
 '''

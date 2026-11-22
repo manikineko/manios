@@ -95,6 +95,7 @@ extern int poll(struct zkt_pollfd *, int, int);
 /* The open files, one per DOS handle. Handles 0-4 initially refer to
  * the console; any closed slot can subsequently hold an opened file. */
 #define HANDLES 20
+#define XMS_STUB_OFF 0x0380 /* F000:0380, after the default-vector stubs */
 
 /* Extended memory (XMS) and expanded memory (EMS): the pools a DOS
  * program asks for beyond the 1 MiB it can address. The sizes are
@@ -175,6 +176,20 @@ struct dos_state {
 	int video_mode;
 	uint16_t cursor[8], cursor_shape;
 	uint8_t active_page;
+	/* VGA CRT controller (3D4h index, 3D5h data). Cursor shape/location
+	 * and page-aligned start addresses are live views of the BIOS text
+	 * state above; the timing registers are stored and read back only. */
+	uint8_t crtc_index, crtc[0x19];
+	/* VGA DAC: 256 six-bit RGB entries, the PEL mask, and the read/write
+	 * index state machine of ports 3C7h-3C9h. Mode 13h is drawn through it. */
+	uint8_t dac[256][3], dac_mask, dac_write, dac_read, dac_write_sub, dac_read_sub, dac_reading;
+	/* MC146818 RTC/CMOS: selected register (port 70h bits 0-6), NMI mask bit. */
+	uint8_t cmos_index, cmos_nmi_off;
+	uint8_t keyboard_param;
+	/* VGA attribute controller (3C0h): index/data flip-flop, reset by a
+	 * read of 3DAh. Its palette/mode registers are stored and read back
+	 * (3C1h); the text renderer keeps the standard attribute colours. */
+	uint8_t attr_index, attr_flip, attr[0x15]; /* the keyboard expects a command's parameter byte */
 	uint16_t text_seen[80 * 25];
 	/* Mode 13h: ManiOS's screen, and whether it is open. */
 	struct gfx_screen screen;
@@ -347,6 +362,248 @@ static void keyboard_port_fill(struct dos_state *d)
 	d->keyboard_port_has_event = 1;
 }
 
+/* --- VGA registers ------------------------------------------------- */
+
+static void text_position(struct dos_state *d, uint16_t pos);
+static void text_cursor_shape(struct dos_state *d);
+static void text_present(struct dos_state *d);
+
+/* The standard VGA CRTC values for 80x25 colour text (mode 3). */
+static const uint8_t crtc_mode3[0x19] = {
+	0x5F, 0x4F, 0x50, 0x82, 0x55, 0x81, 0xBF, 0x1F, 0x00, 0x4F, 0x0D, 0x0E,
+	0x00, 0x00, 0x00, 0x00, 0x9C, 0x8E, 0x8F, 0x28, 0x1F, 0x96, 0xB9, 0xA3, 0xFF,
+};
+
+/* The VGA BIOS default 256-colour palette: 16 EGA colours, 16 greys,
+ * then nine 24-colour hue wheels (three brightnesses x three
+ * saturations), then eight black entries. */
+static void dac_default(struct dos_state *d)
+{
+	static const uint8_t ega[16][3] = {
+		{0,0,0},{0,0,42},{0,42,0},{0,42,42},{42,0,0},{42,0,42},{42,21,0},{42,42,42},
+		{21,21,21},{21,21,63},{21,63,21},{21,63,63},{63,21,21},{63,21,63},{63,63,21},{63,63,63},
+	};
+	static const uint8_t grey[16] = {0,5,8,11,14,17,20,24,28,32,36,40,45,50,56,63};
+	/* hi, lo, then the three intermediate levels of each wheel. */
+	static const uint8_t wheel[9][5] = {
+		{63,0,16,31,47},{63,31,39,47,55},{63,45,49,54,58},
+		{28,0,7,14,21},{28,14,17,21,24},{28,20,22,24,26},
+		{16,0,4,8,12},{16,8,10,11,13},{16,11,12,13,15},
+	};
+	memset(d->dac, 0, sizeof(d->dac));
+	memcpy(d->dac, ega, sizeof(ega));
+	for (int i = 0; i < 16; i++) d->dac[16 + i][0] = d->dac[16 + i][1] = d->dac[16 + i][2] = grey[i];
+	for (int w = 0; w < 9; w++) {
+		uint8_t hi = wheel[w][0], lo = wheel[w][1];
+		uint8_t up[5] = { lo, wheel[w][2], wheel[w][3], wheel[w][4], hi };
+		uint8_t *e = d->dac[32 + w * 24];
+		/* blue -> magenta -> red -> yellow -> green -> cyan -> blue */
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = up[k]; e[1] = lo; e[2] = hi; }
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = hi; e[1] = lo; e[2] = up[4 - k]; }
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = hi; e[1] = up[k]; e[2] = lo; }
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = up[4 - k]; e[1] = hi; e[2] = lo; }
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = lo; e[1] = hi; e[2] = up[k]; }
+		for (int k = 0; k < 4; k++, e += 3) { e[0] = lo; e[1] = up[4 - k]; e[2] = hi; }
+	}
+	d->dac_mask = 0xFF;
+	d->dac_write = d->dac_read = d->dac_write_sub = d->dac_read_sub = 0;
+}
+
+static void attr_default(struct dos_state *d)
+{
+	static const uint8_t mode3[0x15] = {
+		0x00,0x01,0x02,0x03,0x04,0x05,0x14,0x07,0x38,0x39,0x3A,0x3B,0x3C,0x3D,0x3E,0x3F,
+		0x0C,0x00,0x0F,0x08,0x00,
+	};
+	memcpy(d->attr, mode3, sizeof(mode3));
+	d->attr_index = 0x20; d->attr_flip = 0;
+}
+
+static uint16_t crtc_start(struct dos_state *d)
+{
+	return (uint16_t)(d->crtc[0x0C] << 8 | d->crtc[0x0D]);
+}
+
+static int crtc_read(struct dos_state *d, uint8_t *value)
+{
+	uint8_t i = d->crtc_index;
+	if (i > 0x18) { *value = 0xFF; return 0; } /* no register: open bus */
+	if (i == 0x0A || i == 0x0B) {
+		/* The cursor shape is BIOS state (INT 10h AH=01h). */
+		uint8_t start = (uint8_t)((d->cursor_shape >> 8) & 0x3F);
+		uint8_t end = (uint8_t)(d->cursor_shape & 0x1F);
+		*value = i == 0x0A ? (uint8_t)((d->crtc[0x0A] & 0xC0) | start)
+		                   : (uint8_t)((d->crtc[0x0B] & 0xE0) | end);
+		return 0;
+	}
+	if (i == 0x0E || i == 0x0F) {
+		uint16_t pos = d->cursor[d->active_page];
+		uint16_t at = (uint16_t)(crtc_start(d) + (pos >> 8) * 80 + (pos & 255));
+		*value = (uint8_t)(i == 0x0E ? at >> 8 : at);
+		return 0;
+	}
+	*value = d->crtc[i];
+	return 0;
+}
+
+static void crtc_write(struct dos_state *d, uint8_t value)
+{
+	uint8_t i = d->crtc_index;
+	if (i > 0x18) return;
+	/* Registers 0-7 are write-protected while bit 7 of register 11h is set
+	 * (except the overflow register's line-compare bit). */
+	if (i <= 7 && (d->crtc[0x11] & 0x80)) {
+		if (i == 7) d->crtc[7] = (uint8_t)((d->crtc[7] & ~0x10) | (value & 0x10));
+		return;
+	}
+	d->crtc[i] = value;
+	struct cpu *c = d->cpu;
+	switch (i) {
+	case 0x0A: case 0x0B:
+		/* Bit 5 of the start register disables the cursor, as INT 10h
+		 * AH=01h CH bit 5 does. */
+		d->cursor_shape = (uint16_t)(((d->crtc[0x0A] & 0x3F) << 8) | (d->crtc[0x0B] & 0x1F));
+		wr16(c, 0x40, 0x60, d->cursor_shape);
+		if (d->video_mode == 2 || d->video_mode == 3) text_cursor_shape(d);
+		break;
+	case 0x0C: case 0x0D: {
+		/* A start address on a 4 KiB text-page boundary shows that page,
+		 * as INT 10h AH=05h does. Other start addresses (hardware
+		 * scrolling) are kept for reads but not rendered. */
+		uint16_t start = crtc_start(d);
+		if (!(start & 0x7FF) && start < 8 * 0x800 && (start >> 11) != d->active_page) {
+			d->active_page = (uint8_t)(start >> 11);
+			wr8(c, 0x40, 0x62, d->active_page);
+			wr16(c, 0x40, 0x4E, (uint16_t)(d->active_page * 0x1000));
+			text_present(d);
+		}
+		break;
+	}
+	case 0x0E: case 0x0F: {
+		/* The hardware cursor, relative to the displayed page. Positions
+		 * off the 80x25 screen hide it on real hardware; they are kept in
+		 * the register but do not move the BIOS cursor. */
+		uint16_t at = (uint16_t)(d->crtc[0x0E] << 8 | d->crtc[0x0F]);
+		uint16_t start = crtc_start(d);
+		if (at >= start && at - start < 80 * 25) {
+			unsigned rel = at - start;
+			uint16_t pos = (uint16_t)((rel / 80) << 8 | rel % 80);
+			d->cursor[d->active_page] = pos;
+			wr16(c, 0x40, 0x50 + d->active_page * 2, pos);
+			if (d->video_mode == 2 || d->video_mode == 3) text_position(d, pos);
+		}
+		break;
+	}
+	}
+}
+
+static int vga_in8(struct dos_state *d, uint16_t port, uint8_t *value)
+{
+	switch (port) {
+	case 0x3C0: *value = d->attr_index; return 0;
+	case 0x3C1: *value = (d->attr_index & 0x1F) < 0x15 ? d->attr[d->attr_index & 0x1F] : 0xFF; return 0;
+	case 0x3D4: *value = d->crtc_index; return 0;
+	case 0x3D5: return crtc_read(d, value);
+	case 0x3C6: *value = d->dac_mask; return 0;
+	case 0x3C7: *value = d->dac_reading ? 3 : 0; return 0; /* DAC state */
+	case 0x3C8: *value = d->dac_write; return 0;
+	case 0x3C9:
+		*value = d->dac[d->dac_read][d->dac_read_sub];
+		if (++d->dac_read_sub == 3) { d->dac_read_sub = 0; d->dac_read++; }
+		return 0;
+	case 0x3CC: *value = 0x67; return 0; /* misc output: colour, 28 MHz, RAM on */
+	}
+	return -1;
+}
+
+static int vga_out8(struct dos_state *d, uint16_t port, uint8_t value)
+{
+	switch (port) {
+	case 0x3C0:
+		if (!d->attr_flip) d->attr_index = value;
+		else if ((d->attr_index & 0x1F) < 0x15) d->attr[d->attr_index & 0x1F] = value;
+		d->attr_flip ^= 1;
+		return 0;
+	case 0x3D4: d->crtc_index = value; return 0;
+	case 0x3D5: crtc_write(d, value); return 0;
+	case 0x3C6: d->dac_mask = value; return 0;
+	case 0x3C7: d->dac_read = value; d->dac_read_sub = 0; d->dac_reading = 1; return 0;
+	case 0x3C8: d->dac_write = value; d->dac_write_sub = 0; d->dac_reading = 0; return 0;
+	case 0x3C9:
+		d->dac[d->dac_write][d->dac_write_sub] = value & 0x3F;
+		if (++d->dac_write_sub == 3) { d->dac_write_sub = 0; d->dac_write++; }
+		return 0;
+	}
+	return -1;
+}
+
+/* --- MC146818 real-time clock -------------------------------------- */
+
+static uint8_t bcd(unsigned v) { return (uint8_t)((v / 10) << 4 | v % 10); }
+
+/* The CMOS clock reads ManiOS's wall clock (/dev/time, UTC) in the PC
+ * BIOS's configuration: BCD, 24-hour, no daylight saving (status B 02h).
+ * Writes to the clock and configuration are not persisted, as the host
+ * clock is not the guest's to set; they are refused rather than ignored. */
+struct wall { unsigned year, month, day, wday, secs; };
+
+/* ManiOS's wall clock (/dev/time, UTC) as a civil date; 0 if unknown. */
+static int wall_clock(struct wall *w)
+{
+	time_t t = time(NULL);
+	if (t < 0) return 0;
+	uint32_t now = (uint32_t)t; /* 32-bit arithmetic: valid until 2106 */
+	long days = (long)(now / 86400u);
+	w->secs = (unsigned)(now % 86400u);
+	w->wday = (unsigned)((days + 4) % 7); /* 1970-01-01 was a Thursday; 0 = Sunday */
+	/* days-to-civil (H. Hinnant's algorithm) */
+	long z = days + 719468, era = z / 146097;
+	unsigned doe = (unsigned)(z - era * 146097);
+	unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+	unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+	unsigned mp = (5 * doy + 2) / 153;
+	w->day = doy - (153 * mp + 2) / 5 + 1;
+	w->month = mp < 10 ? mp + 3 : mp - 9;
+	w->year = (unsigned)(yoe + era * 400 + (w->month <= 2));
+	return 1;
+}
+
+static int cmos_read(struct dos_state *d, uint8_t *value)
+{
+	uint8_t r = d->cmos_index;
+	struct wall w = { 1980, 1, 1, 2, 0 };
+	(void)wall_clock(&w);
+	unsigned secs = w.secs, day = w.day, month = w.month, year = w.year;
+	switch (r) {
+	case 0x00: *value = bcd(secs % 60); return 0;
+	case 0x02: *value = bcd(secs / 60 % 60); return 0;
+	case 0x04: *value = bcd(secs / 3600); return 0;
+	case 0x06: *value = (uint8_t)(w.wday + 1); return 0; /* 1 = Sunday */
+	case 0x07: *value = bcd(day); return 0;
+	case 0x08: *value = bcd(month); return 0;
+	case 0x09: *value = bcd(year % 100); return 0;
+	case 0x32: *value = bcd(year / 100); return 0; /* IBM century byte */
+	case 0x01: case 0x03: case 0x05: *value = 0; return 0; /* alarms */
+	case 0x0A: *value = 0x26; return 0; /* 32.768 kHz, 1024 Hz; no update in progress */
+	case 0x0B: *value = 0x02; return 0; /* 24-hour, BCD, no interrupts */
+	case 0x0C: *value = 0x00; return 0; /* no interrupt flags */
+	case 0x0D: *value = 0x80; return 0; /* valid RAM and time */
+	case 0x0E: *value = 0x00; return 0; /* diagnostics: no errors */
+	case 0x0F: *value = 0x00; return 0; /* shutdown status: normal */
+	case 0x10: *value = 0x00; return 0; /* no diskette drives */
+	case 0x12: *value = 0x00; return 0; /* no fixed-disk types (not BIOS disks) */
+	case 0x14: *value = 0x20; return 0; /* equipment: 80x25 colour; no FPU, no diskette */
+	case 0x15: *value = 0x80; return 0; /* base memory 640 KiB (0280h) */
+	case 0x16: *value = 0x02; return 0;
+	case 0x2E: *value = 0x00; return 0; /* checksum of 10h-2Dh, high byte */
+	case 0x2F: *value = 0xA2; return 0; /*   ... low byte: 20h + 80h + 02h */
+	}
+	/* The rest of CMOS RAM (no extended memory, no drive types, no
+	 * vendor settings) reads as zero. */
+	*value = 0;
+	return 0;
+}
+
 static int dos_port_in8(struct cpu *c, uint16_t port, uint8_t *value)
 {
 	struct dos_state *d = c->port_context;
@@ -369,7 +626,24 @@ static int dos_port_in8(struct cpu *c, uint16_t port, uint8_t *value)
 		}
 		return 0;
 	}
-	if (port == 0x3DA) return video_status_in8(c, port, value);
+	if (port == 0x3DA) { d->attr_flip = 0; return video_status_in8(c, port, value); }
+	/* VGA does not decode 3DBh; the bus floats high. Programs reach it
+	 * as the high byte of a word read of the status register. */
+	if (port == 0x3DB) { *value = 0xFF; return 0; }
+	if (port >= 0x3C0 && port <= 0x3DF && vga_in8(d, port, value) == 0) return 0;
+	if (port == 0x71) return cmos_read(d, value);
+	if ((port >= 0x210 && port <= 0x28F) || (port >= 0x388 && port <= 0x38B)) {
+		/* No Sound Blaster (bases 210h-280h) or AdLib (388h) is fitted:
+		 * reads float high, so DSP reset never answers AAh and the OPL
+		 * timer status never changes -- "no sound card". */
+		*value = 0xFF; return 0;
+	}
+	if (port == 0x201) {
+		/* No game adapter is fitted: the port floats high, so every
+		 * button reads released and no axis one-shot ever times out --
+		 * what joystick probes treat as "no joystick". */
+		*value = 0xFF; return 0;
+	}
 	if (port == 0x20) { *value = d->pic1_read_isr ? d->pic1_isr : d->pic1_irr; return 0; }
 	if (port == 0x21) { *value = d->pic1_mask; return 0; }
 	if (port == 0x40) return pit0_in(d, value);
@@ -397,6 +671,34 @@ static int dos_port_out8(struct cpu *c, uint16_t port, uint8_t value)
 	 * text programs sometimes touch these after using BIOS INT 10h; the BIOS
 	 * text page remains the source of the rendered image in this runner. */
 	if (port == 0x3D8 || port == 0x3D9) return 0;
+	if (port >= 0x3C0 && port <= 0x3DF && vga_out8(d, port, value) == 0) return 0;
+	if (port == 0x70) {
+		/* Select a CMOS register; bit 7 masks NMI, which is never raised. */
+		d->cmos_index = value & 0x7F; d->cmos_nmi_off = value >> 7; return 0;
+	}
+	if (port == 0x201) return 0; /* fires the (absent) joystick one-shots */
+	if ((port >= 0x210 && port <= 0x28F) || (port >= 0x388 && port <= 0x38B))
+		return 0; /* writes to an absent sound card go nowhere */
+	if (port == 0x60) {
+		/* A command to the keyboard itself. Set LEDs (EDh) and set
+		 * typematic rate (F3h) take one parameter byte; both, enable
+		 * (F4h) and set defaults (F6h) are acknowledged with FAh, which
+		 * the program reads back through port 60h. The terminal has no
+		 * LEDs or repeat rate to change, so the values have no effect. */
+		if (d->keyboard_param) d->keyboard_param = 0;
+		else if (value == 0xED || value == 0xF3) d->keyboard_param = 1;
+		else if (value != 0xF4 && value != 0xF6) return -1;
+		d->keyboard_port_data[0] = 0xFA;
+		d->keyboard_port_count = 1;
+		d->keyboard_port_has_event = 0;
+		return 0;
+	}
+	if (port == 0xF0 || port == 0xF1) {
+		/* Clear coprocessor busy / reset coprocessor: with no numeric
+		 * coprocessor fitted there is no latched error or busy state to
+		 * clear, so the write has no effect, as on such a PC. */
+		return 0;
+	}
 	if (port == 0x20) {
 		if (value == 0x20 || value == 0x60) { d->pic1_isr &= (uint8_t)~1; return 0; }
 		if (value == 0x0A || value == 0x0B) { d->pic1_read_isr = value & 1; return 0; }
@@ -529,6 +831,22 @@ struct dos_state *dos_new(struct cpu *c)
 	mem_w8(c, 0xF0120, 0xCF);
 	wr16(c,0,8*4,0x100); wr16(c,0,8*4+2,0xF000);
 	wr16(c,0,0x1C*4,0x120); wr16(c,0,0x1C*4+2,0xF000);
+	/* Vectors 00h-3Fh (CPU, BIOS and DOS) and 70h-77h (IRQ 8-15) always
+	 * hold a handler on a PC. Where neither the BIOS stubs above nor DOS
+	 * supply one, point them at a per-vector ROM stub that bridges to
+	 * dosrun's own service for that vector (or returns, if it has none).
+	 * Programs save such a vector and chain or far-call to it; 0000:0000
+	 * would run the vector table itself, and a bare IRET would skip
+	 * services such as INT 2Fh's XMS interface. */
+	for (int v = 0; v < 0x78; v++) {
+		if (v >= 0x40 && v < 0x70) continue;
+		if (!rd16(c, 0, v * 4) && !rd16(c, 0, v * 4 + 2)) {
+			memcpy(c->mem + (uint32_t)CPU_DEFAULT_VECTOR_SEG * 16 + CPU_DEFAULT_VECTOR_OFF(v),
+			       bios_stub, sizeof(bios_stub));
+			wr16(c, 0, v * 4, CPU_DEFAULT_VECTOR_OFF(v));
+			wr16(c, 0, v * 4 + 2, CPU_DEFAULT_VECTOR_SEG);
+		}
+	}
 	wr16(c,0,0x21*4,0x130); wr16(c,0,0x21*4+2,0xF000);
 	c->irq_ack = dos_irq_ack;
 	/* PC BIOS normally leaves IRQ0 (timer) and IRQ1 (keyboard) unmasked. */
@@ -537,6 +855,9 @@ struct dos_state *dos_new(struct cpu *c)
 	d->pit0.divisor = 65536u;
 	d->pit0.loaded = 1;
 	d->pit0.mode = 3;
+	dac_default(d);
+	memcpy(d->crtc, crtc_mode3, sizeof(d->crtc));
+	attr_default(d);
 	d->pending_key = -1;
 	d->pending_key2 = -1;
 	d->pending_bios_key = -1;
@@ -1601,9 +1922,13 @@ static enum cpu_stop dos21(struct dos_state *d, struct cpu *c)
 	}
 
 	case 0x2A: { /* the date: CX=year, DH=month, DL=day, AL=weekday */
-		c->r[CX] = 2026;
-		c->r[DX] = (uint16_t)((10 << 8) | 7);
-		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | 2); /* Wednesday */
+		/* ManiOS's wall clock (UTC), as the CMOS clock reports it; the
+		 * old fixed date remains only for a machine without one. */
+		struct wall w = { 2026, 10, 7, 3, 0 };
+		(void)wall_clock(&w);
+		c->r[CX] = (uint16_t)w.year;
+		c->r[DX] = (uint16_t)((w.month << 8) | w.day);
+		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | w.wday);
 		return CPU_OK;
 	}
 
@@ -1640,10 +1965,67 @@ static enum cpu_stop dos21(struct dos_state *d, struct cpu *c)
 	}
 
 	case 0x36: { /* free space: AX=sectors/cluster, BX=free, CX=bytes/sector */
+		/* DL: 0 = default drive, 1 = A:, ... An unmounted drive is
+		 * "invalid drive" (AX=FFFFh), not a disk with free space. */
+		int drive = (c->r[DX] & 255) ? (int)(c->r[DX] & 255) - 1 : dos_get_drive();
+		char cwd[256];
+		if (drive < 0 || drive >= 26 || dos_getcwd(drive, cwd, sizeof(cwd)) < 0) {
+			c->r[AX] = 0xFFFF;
+			return CPU_OK;
+		}
+		/* The geometry is still a placeholder: ManiOS has no free-space
+		 * query yet, so these totals are not the volume's. */
 		c->r[AX] = 4;
 		c->r[BX] = 0x1000;
 		c->r[CX] = 512;
 		c->r[DX] = 0x1000;
+		return CPU_OK;
+	}
+
+	/* AH=37h (switch character) is deliberately left unimplemented, as
+	 * before: ManiOS paths use '/', so the DOS default answer '/' makes
+	 * programs that honour it (Vern Buerg's LIST, for one) read
+	 * "C:/FILE.TXT" as an option. Failing the call keeps their own
+	 * defaults, which accept those paths. */
+
+	case 0x60: { /* TRUENAME: canonicalise DS:SI into ES:DI (128 bytes) */
+		char in[128], out[128]; unsigned i;
+		for (i = 0; i + 1 < sizeof(in); i++) {
+			in[i] = (char)rd8(c, ds, (uint16_t)(c->r[SI] + i));
+			if (!in[i]) break;
+		}
+		in[i] = 0;
+		if (i + 1 == sizeof(in) || !in[0]) { c->r[AX] = 3; set_cf(c, 1); return CPU_OK; }
+		const char *p = in;
+		int drive = dos_get_drive();
+		if (isalpha((unsigned char)p[0]) && p[1] == ':') {
+			drive = toupper((unsigned char)p[0]) - 'A';
+			p += 2;
+		}
+		char cwd[128];
+		if (drive < 0 || drive >= 26 || dos_getcwd(drive, cwd, sizeof(cwd)) < 0) {
+			c->r[AX] = 0x0F; set_cf(c, 1); return CPU_OK; /* invalid drive */
+		}
+		/* Components: the current directory unless the path is rooted,
+		 * then the path's own, with "." dropped and ".." popping one. */
+		char work[260];
+		int n = (*p == '\\' || *p == '/') ? snprintf(work, sizeof(work), "%s", p)
+		                                   : snprintf(work, sizeof(work), "%s\\%s", cwd, p);
+		if (n < 0 || n >= (int)sizeof(work)) { c->r[AX] = 3; set_cf(c, 1); return CPU_OK; }
+		char *parts[64]; int np = 0;
+		for (char *tok = strtok(work, "\\/"); tok; tok = strtok(NULL, "\\/")) {
+			if (!strcmp(tok, ".")) continue;
+			if (!strcmp(tok, "..")) { if (np) np--; continue; }
+			if (np == 64) { c->r[AX] = 3; set_cf(c, 1); return CPU_OK; }
+			parts[np++] = tok;
+		}
+		int len = snprintf(out, sizeof(out), "%c:\\", 'A' + drive);
+		for (int k = 0; k < np && len < (int)sizeof(out); k++)
+			len += snprintf(out + len, sizeof(out) - len, "%s%s", k ? "\\" : "", parts[k]);
+		if (len >= (int)sizeof(out)) { c->r[AX] = 3; set_cf(c, 1); return CPU_OK; }
+		for (char *q = out; *q; q++) *q = (char)toupper((unsigned char)*q);
+		for (int k = 0; k <= len; k++) wr8(c, c->sreg[0], (uint16_t)(c->r[DI] + k), (uint8_t)out[k]);
+		set_cf(c, 0);
 		return CPU_OK;
 	}
 
@@ -1736,6 +2118,12 @@ static enum cpu_stop dos21(struct dos_state *d, struct cpu *c)
 	case 0x4B:
 		return dos_exec(d, c);
 
+	case 0x31: /* terminate and stay resident: AL = return code */
+		/* Nothing outlives dosrun on ManiOS, so there is no resident
+		 * part to keep: the program ends with its return code, as for
+		 * AH=4Ch. Its resident behaviour (hooked interrupts) is gone
+		 * with it. Previously this was "invalid function" and the
+		 * program ran on into its resident data. */
 	case 0x4C: /* terminate with a return code */
 		d->exit_code = (uint8_t)(c->r[AX] & 0xFF);
 		c->exit_code = d->exit_code;
@@ -2129,27 +2517,30 @@ static enum cpu_stop dos_xms(struct dos_state *d, struct cpu *c);
  * separate code segment to build. */
 static void xms_entry(struct dos_state *d, struct cpu *c)
 {
-	/* A far call to a stub: mov al,11h; int 2Fh; retf. The XMS
-	 * function is already in AH. It goes near the top of the PSP's
-	 * segment, past where a .COM's code and data reach. */
-	uint16_t seg = d->psp_seg;
-	uint16_t off = 0xFE00;
-	wr8(c, seg, off, 0xB0);      /* mov al,11h */
-	wr8(c, seg, (uint16_t)(off + 1), 0x11);
-	wr8(c, seg, (uint16_t)(off + 2), 0xCD); /* INT */
-	wr8(c, seg, (uint16_t)(off + 3), 0x2F);
-	wr8(c, seg, (uint16_t)(off + 4), 0xCB); /* RETF */
+	/* A far call to a stub in the BIOS ROM area: int F4h; retf. The XMS
+	 * function is in AH and every register reaches the driver unchanged.
+	 * INT F4h is a private trap, honoured only from this stub (see
+	 * dispatch_int). Before 0.28.0 the stub was written at PSP:FE00,
+	 * which for a large EXE is inside the program itself. */
+	(void)d;
+	uint16_t seg = 0xF000, off = XMS_STUB_OFF;
+	wr8(c, seg, off, 0xCD);                 /* INT F4h */
+	wr8(c, seg, (uint16_t)(off + 1), 0xF4);
+	wr8(c, seg, (uint16_t)(off + 2), 0xCB); /* RETF */
 	c->sreg[0] = seg;
 	c->r[BX] = off;
 }
 
-/* INT 2Fh AH=43h: the XMS driver's installation check and entry point.
- * AL=00h is the check; AL=10h asks for the entry point; AL=11h is the
- * entry point itself (the stub above), which runs the XMS function in
- * AH. */
+/* INT 2Fh AH=43h: the XMS driver's installation check (AL=00h) and entry
+ * point (AL=10h). The entry point itself is the stub above. */
 static enum cpu_stop int2f_xms(struct dos_state *d, struct cpu *c)
 {
 	uint8_t al = (uint8_t)(c->r[AX] & 0xFF);
+	/* Multiplex number 43h is XMS. Other multiplex numbers (Windows,
+	 * DOSKEY, ANSI.SYS, APPEND, SHARE...) have no handler here: return
+	 * with the registers unchanged, which their installation checks read
+	 * as "not installed" (AL=00h). */
+	if ((c->r[AX] >> 8) != 0x43) return CPU_OK;
 	if (al == 0x00) { /* the installation check */
 		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | (d->xms_installed ? 0x80 : 0x00));
 		return CPU_OK;
@@ -2158,11 +2549,7 @@ static enum cpu_stop int2f_xms(struct dos_state *d, struct cpu *c)
 		xms_entry(d, c);
 		return CPU_OK;
 	}
-	if (al == 0x11) { /* through the entry point: the XMS function is AH */
-		return dos_xms(d, c);
-	}
-	c->r[AX] = (uint16_t)(c->r[AX] & 0xFF00);
-	return CPU_OK;
+	return CPU_OK; /* other AH=43h functions: none */
 }
 
 /* The XMS function dispatcher, entered through the stub with AH the
@@ -2509,8 +2896,8 @@ static void text_present(struct dos_state *d)
 }
 
 /* Copies the program's mode 13h framebuffer to ManiOS's screen. The
- * program's pixels are one byte each (RGB 3-3-2); ManiOS's canvas is
- * 32-bit, so each byte is expanded to a colour. */
+ * program's pixels are one byte each, an index into the VGA DAC
+ * palette (6 bits per primary); ManiOS's canvas is 32-bit. */
 void dos_video_present(struct dos_state *d)
 {
 	if (!d->screen_open) {
@@ -2521,10 +2908,10 @@ void dos_video_present(struct dos_state *d)
 	static uint32_t pixels[VGA_W * VGA_H];
 	const uint8_t *fb = d->cpu->mem + VGA_BASE;
 	for (int i = 0; i < VGA_W * VGA_H; i++) {
-		uint8_t p = fb[i];
-		uint32_t r = (uint32_t)(p >> 5) * 255 / 7;
-		uint32_t g = (uint32_t)((p >> 2) & 7) * 255 / 7;
-		uint32_t b = (uint32_t)(p & 3) * 255 / 3;
+		const uint8_t *e = d->dac[fb[i] & d->dac_mask];
+		uint32_t r = (uint32_t)e[0] * 255 / 63;
+		uint32_t g = (uint32_t)e[1] * 255 / 63;
+		uint32_t b = (uint32_t)e[2] * 255 / 63;
 		pixels[i] = 0xFF000000u | (r << 16) | (g << 8) | b;
 	}
 	struct gfx_canvas c = {
@@ -2648,6 +3035,9 @@ static enum cpu_stop bios10(struct dos_state *d, struct cpu *c)
 	case 0x00: /* set the video mode */
 		d->video_mode = al;
 		wr8(c, 0x40, 0x49, al);
+		dac_default(d); /* a BIOS mode set reloads the default palette */
+		attr_default(d);
+		memcpy(d->crtc, crtc_mode3, sizeof(d->crtc));
 		if (al == 0x13) {
 			/* 320x200, 256 colours: ManiOS's VGA mode 13h. */
 			dos_video_mode13(d);
@@ -2722,8 +3112,48 @@ static enum cpu_stop bios10(struct dos_state *d, struct cpu *c)
 			    ah == 0x07, (uint8_t)(c->r[BX] >> 8));
 		return CPU_OK;
 	}
-	case 0x10: case 0x11: case 0x12: case 0x1A: case 0x1B:
-		return CPU_OK; /* the palette, font and adapter services */
+	case 0x10: /* the palette: the DAC subfunctions are real; EGA attribute
+	            * palette and blink settings do not change the text renderer */
+		switch (al) {
+		case 0x10: { /* set one DAC register: BX=index, DH=R, CH=G, CL=B */
+			uint8_t *e = d->dac[c->r[BX] & 255];
+			e[0] = (uint8_t)(c->r[DX] >> 8) & 0x3F; e[1] = (uint8_t)(c->r[CX] >> 8) & 0x3F; e[2] = (uint8_t)c->r[CX] & 0x3F;
+			return CPU_OK;
+		}
+		case 0x12: /* set a block: BX=first, CX=count, ES:DX = R,G,B triples */
+			for (unsigned i = 0; i < c->r[CX] && c->r[BX] + i < 256; i++)
+				for (int k = 0; k < 3; k++)
+					d->dac[c->r[BX] + i][k] = rd8(c, c->sreg[0], (uint16_t)(c->r[DX] + i * 3 + k)) & 0x3F;
+			return CPU_OK;
+		case 0x15: { /* read one: BX=index -> DH=R, CH=G, CL=B */
+			uint8_t *e = d->dac[c->r[BX] & 255];
+			c->r[DX] = (uint16_t)((c->r[DX] & 255) | (e[0] << 8));
+			c->r[CX] = (uint16_t)((e[1] << 8) | e[2]);
+			return CPU_OK;
+		}
+		case 0x17: /* read a block into ES:DX */
+			for (unsigned i = 0; i < c->r[CX] && c->r[BX] + i < 256; i++)
+				for (int k = 0; k < 3; k++)
+					wr8(c, c->sreg[0], (uint16_t)(c->r[DX] + i * 3 + k), d->dac[c->r[BX] + i][k]);
+			return CPU_OK;
+		case 0x18: d->dac_mask = (uint8_t)c->r[BX]; return CPU_OK; /* set PEL mask */
+		case 0x19: c->r[BX] = (uint16_t)((c->r[BX] & 0xFF00) | d->dac_mask); return CPU_OK;
+		}
+		return CPU_OK;
+	case 0x1A: /* display combination code */
+		if (al == 0x00) { /* read: AL=1Ah if supported; BL active, BH alternate */
+			c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | 0x1A);
+			c->r[BX] = 0x0008; /* VGA with colour analog display; no second display */
+		}
+		return CPU_OK;
+	case 0x12: /* alternate select */
+		if ((c->r[BX] & 0xFF) == 0x10) { /* EGA/VGA information */
+			c->r[BX] = 0x0003;           /* BH=0 colour mode, BL=3: 256 KiB video memory */
+			c->r[CX] = (uint16_t)(c->r[CX] & 0xFF00) | 0x09; /* switch setting: colour 80x25 */
+		}
+		return CPU_OK;
+	case 0x11: case 0x1B:
+		return CPU_OK; /* the font and state services */
 	default:
 		return CPU_OK;
 	}
@@ -2776,10 +3206,24 @@ static enum cpu_stop bios1a(struct dos_state *d, struct cpu *c)
 		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | mem_r8(c, 0x470));
 		mem_w8(c, 0x470, 0);
 		return CPU_OK;
-	case 0x02: /* read the RTC time: CH=hour, CL=minute, DH=second */
-		c->r[CX] = (uint16_t)((12 << 8) | 0);
-		c->r[DX] = (uint16_t)((0 << 8) | 0);
+	case 0x02: { /* read the RTC time (BCD): CH=hour, CL=minute, DH=second, DL=DST */
+		struct wall w;
+		if (!wall_clock(&w)) { set_cf(c, 1); return CPU_OK; }
+		c->r[CX] = (uint16_t)((bcd(w.secs / 3600) << 8) | bcd(w.secs / 60 % 60));
+		c->r[DX] = (uint16_t)(bcd(w.secs % 60) << 8);
 		set_cf(c, 0);
+		return CPU_OK;
+	}
+	case 0x04: { /* read the RTC date (BCD): CH=century, CL=year, DH=month, DL=day */
+		struct wall w;
+		if (!wall_clock(&w)) { set_cf(c, 1); return CPU_OK; }
+		c->r[CX] = (uint16_t)((bcd(w.year / 100) << 8) | bcd(w.year % 100));
+		c->r[DX] = (uint16_t)((bcd(w.month) << 8) | bcd(w.day));
+		set_cf(c, 0);
+		return CPU_OK;
+	}
+	case 0x03: case 0x05: /* set the RTC time/date: the host clock is not the guest's */
+		set_cf(c, 1);
 		return CPU_OK;
 	default:
 		return CPU_OK;
@@ -2794,12 +3238,14 @@ static int bios_stub_target(struct cpu *c)
 	static const uint8_t vectors[] = {0x10,0x11,0x12,0x14,0x15,0x16,0x17,0x1A,0x29};
 	if (rd16(c,c->sreg[2],c->r[SP]+2) != 0xF000) return -1;
 	uint16_t ret = rd16(c,c->sreg[2],c->r[SP]);
+	if (rd8(c,0xF000,(uint16_t)(ret-2)) != 0xCD || rd8(c,0xF000,(uint16_t)(ret-1)) != 0xF3 ||
+	    rd8(c,0xF000,ret) != 0xCF) return -1;
 	for (unsigned i = 0; i < sizeof(vectors); i++)
-		if (ret == 0x142 + i * 3 &&
-		    rd8(c,0xF000,(uint16_t)(ret-2)) == 0xCD &&
-		    rd8(c,0xF000,(uint16_t)(ret-1)) == 0xF3 &&
-		    rd8(c,0xF000,ret) == 0xCF)
-			return vectors[i];
+		if (ret == 0x142 + i * 3) return vectors[i];
+	/* The default-vector stubs (dos_new) */
+	if (ret >= CPU_DEFAULT_VECTOR_OFF(0) + 2 && ret < CPU_DEFAULT_VECTOR_OFF(0x78) &&
+	    (ret - CPU_DEFAULT_VECTOR_OFF(0) - 2) % 3 == 0)
+		return (ret - CPU_DEFAULT_VECTOR_OFF(0) - 2) / 3;
 	return -1;
 }
 
@@ -2819,6 +3265,12 @@ static enum cpu_stop dispatch_int(struct dos_state *d, struct cpu *c, uint8_t ve
 		    rd16(c,c->sreg[2],c->r[SP] + 2) != 0xF000)
 			return CPU_IRET;
 		return dos21(d, c);
+	case 0xF4: /* Internal XMS entry-point trap; only from the xms_entry stub. */
+		if (rd16(c,c->sreg[2],c->r[SP]+2) != 0xF000 ||
+		    rd16(c,c->sreg[2],c->r[SP]) != XMS_STUB_OFF + 2 ||
+		    rd8(c,0xF000,XMS_STUB_OFF) != 0xCD || rd8(c,0xF000,XMS_STUB_OFF + 1) != 0xF4)
+			return CPU_IRET;
+		return dos_xms(d, c);
 	case 0xF3: { /* Internal BIOS ROM-stub trap for far-call IVT dispatch. */
 		int target = bios_stub_target(c);
 		if (target == 0x16 &&
@@ -2827,6 +3279,7 @@ static enum cpu_stop dispatch_int(struct dos_state *d, struct cpu *c, uint8_t ve
 		return target < 0 ? CPU_IRET : dispatch_int(d, c, (uint8_t)target);
 	}
 	case 0x20: /* terminate */
+	case 0x27: /* terminate and stay resident (see INT 21h AH=31h) */
 		c->exit_code = 0;
 		return CPU_EXIT;
 	case 0x21:

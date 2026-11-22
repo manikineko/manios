@@ -1,7 +1,7 @@
 # ManiOS
 
-Current development prerelease: **0.27.0-10252026**
-([compatibility update notes](docs/releases/0.27.0-10252026.md)).
+Current development prerelease: **0.28.0**
+([DOS compatibility update notes](docs/releases/0.28.0.md)).
 
 An independent operating system with **ZKT (ZygKernel Technology)** at
 its core, BSD technology adopted where it legally and technically earns
