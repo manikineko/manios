@@ -1,0 +1,3 @@
+# Started at every boot of an installed system (0.30.0): setup finishes
+# a new installation once, then runs the disk's manios/etc/rc if any.
+setup

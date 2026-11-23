@@ -203,6 +203,60 @@ stick at `/dev/sdX`:
 sudo dd if=manios-0.24.0.iso of=/dev/sdX bs=1M conv=fsync
 ```
 
+## Installing with a profile (0.30.0)
+
+Since 0.30.0, `install` with no arguments asks step by step, as Debian's
+installer does ([ADR-0011](adr/0011-debian-style-installer.md)); every
+step has a default in brackets that Enter takes:
+
+```
+manios% install
+ManiOS 0.30.0 installer
+-- Step 1 of 7: keyboard --       US (the only layout so far)
+-- Step 2 of 7: network --        Address: dhcp, or A.B.C.D/N [dhcp]
+-- Step 3 of 7: host name --      This machine's name [manios]
+-- Step 4 of 7: disk --           Install on [ata0]
+-- Step 5 of 7: profile --        1 Desktop  2 Server  3 Server + DOS  4 Custom
+                                  More packages (names, or none) [none]
+-- Step 6 of 7: packages --       Get packages from: cd, or a repository URL [cd]
+(summary)                         Type yes to go on
+```
+
+The profiles:
+
+| Profile      | Installs                         | Starts into |
+|--------------|----------------------------------|-------------|
+| `desktop`    | `manide`, `manidos`              | ManiDE      |
+| `server`     | nothing: the shell, network, pkg | the shell   |
+| `server-dos` | `manidos` and `@dos-tools`       | the shell   |
+| `custom`     | the packages you name            | the shell   |
+
+The same without questions:
+
+```
+install -y --profile server-dos --pkg unzip --hostname srv \
+        --net 10.0.0.5/24,10.0.0.1 --dns 10.0.0.1 ata0
+```
+
+What happens:
+
+- The disk gets the **base system** (`BASE.BIN` from the CD: ManiOS
+  without ManiDE and ManiDOS) in partition 1, and a **FAT16 data
+  partition** (type 0x06) after it, up to 2 GiB, that the installed
+  system sees as `/n/ata0p2`: packages (`manios/pkg`), `home/`, and
+  `manios/etc/rc` if you add one. The disk must be at least about 11 MiB.
+- When the CD has the package repository (`REPO`, release CDs), its
+  signed index and packages are copied onto the data partition, so the
+  CD can come out at once. Otherwise `--repo URL` (or the default,
+  manios.nl) is used at the first start, which then needs the network.
+- The installed system starts `/boot/etc/rc.setup`. At the first start
+  `setup` installs the profile's packages (checked against the signed
+  index, as `pkg` always does), deletes the copies, keeps `SETUP.CFG` as
+  `SETUP.DON`, and restarts once. If something fails, it tries again at
+  the next start. After that it only runs `manios/etc/rc`, if there is one.
+- Without a profile, `install DISK [KEY=VALUE...]` does what it did
+  before 0.30.0 (below).
+
 ## Installing on a hard disk
 
 Boot the CD (or stick) on the machine, then, at the `manios% ` prompt:
@@ -236,6 +290,9 @@ An installed ManiOS can install itself again, on another disk
 from, whichever medium that was.
 
 ## What an installation is, today
+
+*With a profile (0.30.0) the disk also has a data partition: packages,
+`home/` and `manios/etc` live there and survive restarts.*
 
 The installed system is the live system: the same kernel and the same
 boot archive (`/boot`, `/bin`) as the CD, read-only, with its own command

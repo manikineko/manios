@@ -14,7 +14,7 @@ from pathlib import Path
 from console_test import SHELL_PROMPT, Machine, TestFailure, run_command
 
 GONE = ("dosrun", "dos", "manide", "desktop", "welcome", "term")
-KEPT = ("sh", "pkg", "install", "hget", "ls")
+KEPT = ("sh", "pkg", "install", "hget", "ls", "setup", "mkfat")
 
 
 def main():
@@ -40,7 +40,10 @@ def main():
         extra = [p for p in GONE if f"bin/{p}" in names]
         if missing or extra or "autoexec.bat" in names or "etc/manide" in names:
             raise TestFailure(f"missing {missing}, extra {extra}")
-        if not names < full:
+        only = {"bin/setup", "bin/mkfat", "etc/rc.setup"}
+        if not only <= names or only & full:
+            raise TestFailure("setup, mkfat and rc.setup belong to the base system only")
+        if not names - only < full:
             raise TestFailure("the base archive has files the full one lacks")
     step("base archive: the full one without ManiDE and ManiDOS", archive)
 

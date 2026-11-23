@@ -90,6 +90,12 @@ Groups to start with: `dos-tools`, later `dos-games` and `dev`.
 
 ### 4. The installer's steps
 
+*Built in 0.30.0. One change from this plan: the kernel finds partitions
+only when it starts, so `install` cannot install packages onto the new
+data partition itself. It formats it with `SETUP.CFG` (and a copy of the
+CD's signed packages), and `setup` installs them at the first start, then
+restarts once, as Debian's base-config once did.*
+
 As Debian's installer, every screen has a default and Enter moves on:
 
 1. **Welcome**: install, or (on an installed system) upgrade.

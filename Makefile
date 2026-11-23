@@ -109,12 +109,18 @@ USER_PROGRAMS := $(patsubst userland/%.c,%,$(wildcard userland/bin/*.c userland/
 USER_OBJECTS := $(patsubst %,$(BUILD)/userland/%.o,$(USER_PROGRAMS))
 # The licenses of the code from BSD go with the programs built from it.
 NOTICES := $(BUILD)/bootfs/etc/notices
-BOOTFS_FILES := $(patsubst %,$(BUILD)/bootfs/%,$(USER_PROGRAMS)) \
+# Programs only installed systems need (0.30.0): setup and its start-up
+# script, and mkfat (install has its own copy of the formatter). They are
+# in the base system; the full one -- the live CD, the smallest machines
+# (7 MiB) -- leaves them out.
+BASE_ONLY := $(BUILD)/bootfs/bin/setup $(BUILD)/bootfs/bin/mkfat $(BUILD)/bootfs/etc/rc.setup
+ALL_BOOTFS_FILES := $(patsubst %,$(BUILD)/bootfs/%,$(USER_PROGRAMS)) \
                 $(patsubst userland/%,$(BUILD)/bootfs/%,$(wildcard userland/etc/*)) \
                 $(BUILD)/bootfs/bin/manide $(DESKTOP_BOOTFS) $(NOTICES) \
                 $(BUILD)/bootfs/bin/dos $(BUILD)/bootfs/autoexec.bat \
                 $(BUILD)/bootfs/bin/dosrun \
                 $(BUILD)/bootfs/test/pipeseek1
+BOOTFS_FILES := $(filter-out $(BASE_ONLY),$(ALL_BOOTFS_FILES))
 BOOTFS_OBJECT := $(BUILD)/bootfs.o
 # The base system (ADR-0011, 0.30.0): the same kernel and programs
 # without ManiDE and ManiDOS, which installed systems get as packages
@@ -124,7 +130,7 @@ BASE := $(BUILD)/base
 BASE_LEFT_OUT := $(BUILD)/bootfs/bin/manide $(DESKTOP_BOOTFS) $(BUILD)/bootfs/bin/desktop \
                  $(BUILD)/bootfs/etc/manide $(BUILD)/bootfs/bin/dos $(BUILD)/bootfs/autoexec.bat \
                  $(BUILD)/bootfs/bin/dosrun
-BASE_FILES := $(filter-out $(BASE_LEFT_OUT),$(BOOTFS_FILES))
+BASE_FILES := $(filter-out $(BASE_LEFT_OUT),$(ALL_BOOTFS_FILES))
 BASE_BOOTAREA := $(BASE)/manios-base.bin
 # CD_REPO=DIR (tools/mkrepo.py --cd DIR) puts the signed package
 # repository on the ISO as REPO, for installing without a network.
@@ -391,6 +397,7 @@ test: $(KERNEL) test-images
 	tests/boot_smoke_test.sh $(KERNEL)
 	python3 tests/install_test.py $(BUILD)
 	python3 tests/base_system_test.py $(BUILD)
+	python3 tests/installer_test.py $(BUILD)
 	python3 tests/console_test.py $(KERNEL)
 	python3 tests/openbsd_test.py $(KERNEL)
 	python3 tests/net_test.py $(KERNEL)

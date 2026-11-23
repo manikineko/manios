@@ -247,7 +247,8 @@ static int to_mem(void *ctx, const void *data, size_t len)
 /* Fetches REL from the repository: over HTTP, or -- when the repository
  * is a directory such as the install CD's /n/cd0/REPO (0.30.0) -- from
  * the file REPO/REL, or REPO/ALT (a CD keeps packages as PKGS/NAME.TAR:
- * ISO 9660 names are 8.3). Trust is the same either way: the index's
+ * ISO 9660 names are 8.3), or REPO/NAME.TAR (the copy install puts on a
+ * new data partition). Trust is the same either way: the index's
  * signature and each package's SHA-256. */
 static int repo_get(const char *rel, const char *alt, http_sink sink, void *ctx,
                     struct http_result *res)
@@ -261,6 +262,11 @@ static int repo_get(const char *rel, const char *alt, http_sink sink, void *ctx,
 	int fd = open(url, OREAD);
 	if (fd < 0 && alt) {
 		snprintf(url, sizeof(url), "%s/%s", repo, alt);
+		fd = open(url, OREAD);
+	}
+	if (fd < 0 && alt && strchr(alt, '/')) {
+		/* The installer's copy on the data partition: NAME.TAR. */
+		snprintf(url, sizeof(url), "%s/%s", repo, strchr(alt, '/') + 1);
 		fd = open(url, OREAD);
 	}
 	if (fd < 0) {

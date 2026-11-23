@@ -187,7 +187,7 @@ class Install:
         m = boot(disks=[disk, small], cdrom=self.iso, order="d")
         try:
             m.expect(SHELL_PROMPT, timeout=120)
-            run_command(m, "serial", "install", ["usage: install [-y] DISK [KEY=VALUE...]"], SHELL_PROMPT)
+            run_command(m, "serial", "install -h", ["usage: install [-y] DISK [KEY=VALUE...]"], SHELL_PROMPT)
             run_command(m, "serial", "install ata0p1", ["not a partition"], SHELL_PROMPT)
             run_command(m, "serial", "install nosuch", ["/dev/nosuch: no such file or directory"],
                         SHELL_PROMPT)

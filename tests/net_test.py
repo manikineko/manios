@@ -577,8 +577,12 @@ def test_guest_server(peer, bootfs):
             break
         names += batch
         index += len(batch)
-    check(sorted(names) == sorted(os.listdir(os.path.join(bootfs, "bin"))),
-          f"the directory listing differs: {names}")
+    # What the boot archive holds (build/bootfs also has the programs
+    # only the base system carries, 0.30.0).
+    tar = os.path.join(os.path.dirname(bootfs), "bootfs.tar")
+    archived = [n[4:] for n in subprocess.run(["tar", "tf", tar], capture_output=True, text=True,
+                                              check=True).stdout.split() if n.startswith("bin/")]
+    check(sorted(names) == sorted(archived), f"the directory listing differs: {names}")
 
     # A whole program, compared with the build's copy.
     rtype, r = c.rpc(TWALK, struct.pack("<II", 4, 5) + zstr("sh"))
