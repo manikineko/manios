@@ -2,13 +2,15 @@
  * (DESIGN.md). Defaults to the current framebuffer's size, or 800x600
  * if the screen is in text mode; needs a display of at least 640x480.
  * It starts the programs its session file lists
- * (/boot/etc/manide, or SESSION; -n: none), and exits with Alt+Shift+Q
+ * (/boot/etc/manide, or when ManiDE is a package its share/manide/session;
+ * or SESSION; -n: none), and exits with Alt+Shift+Q
  * or from its menu, restoring the text console.
  *
  * `manide -m` is the helper that mounts the window system: ManiDE can't
  * mount its own pipe, because mounting waits for the server to answer
  * -- and the server is ManiDE. */
 #include "manide.h"
+#include <dirent.h>
 #include <errno.h>
 #include <manios.h>
 #include <stdarg.h>
@@ -251,6 +253,20 @@ static void session_step(void)
 static void session_open(const char *path)
 {
 	session_fd = open(path, OREAD);
+	if (session_fd < 0 && !strcmp(path, SESSION)) {
+		/* Installed as a package (0.30.0, the base system has no
+		 * /boot/etc/manide): the first disk's manios/pkg/share/manide. */
+		DIR *d = opendir("/n");
+		struct dirent *e;
+		char p[96];
+		while (session_fd < 0 && d && (e = readdir(d))) {
+			snprintf(p, sizeof(p), "/n/%s/manios/pkg/share/manide/session", e->d_name);
+			session_fd = open(p, OREAD);
+		}
+		if (d) {
+			closedir(d);
+		}
+	}
 	if (session_fd < 0) {
 		say("no session: %s: %s", path, strerror(errno));
 	}

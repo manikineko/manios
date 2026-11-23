@@ -18,7 +18,8 @@
  *
  * Options, before the command: -r ROOT (where packages go; default the
  * first writable disk's /n/DISK/manios/pkg), -u URL (the repository;
- * default http://manios.nl/repo, or the one the last update used).
+ * default http://manios.nl/repo, or the one the last update used; a
+ * directory such as the install CD's /n/cd0/REPO works too).
  *
  * Trust. ManiOS has no TLS, so the repository is fetched over plain HTTP
  * and nothing is believed because of where it came from: the index
@@ -44,7 +45,7 @@
 
 #define DEFAULT_URL "http://manios.nl/repo"
 #define INDEX_MAX (512 * 1024)
-#define CMDS_MAX 8
+#define CMDS_MAX 16
 #define REQS_MAX 4
 #define GROUP_MAX 32
 #define DEPTH_MAX 8
@@ -243,13 +244,54 @@ static int to_mem(void *ctx, const void *data, size_t len)
 	return 0;
 }
 
+/* Fetches REL from the repository: over HTTP, or -- when the repository
+ * is a directory such as the install CD's /n/cd0/REPO (0.30.0) -- from
+ * the file REPO/REL, or REPO/ALT (a CD keeps packages as PKGS/NAME.TAR:
+ * ISO 9660 names are 8.3). Trust is the same either way: the index's
+ * signature and each package's SHA-256. */
+static int repo_get(const char *rel, const char *alt, http_sink sink, void *ctx,
+                    struct http_result *res)
+{
+	char url[256];
+	snprintf(url, sizeof(url), "%s/%s", repo, rel);
+	if (repo[0] != '/') {
+		return http_get(url, sink, ctx, res);
+	}
+	memset(res, 0, sizeof(*res));
+	int fd = open(url, OREAD);
+	if (fd < 0 && alt) {
+		snprintf(url, sizeof(url), "%s/%s", repo, alt);
+		fd = open(url, OREAD);
+	}
+	if (fd < 0) {
+		res->status = 404;
+		return 0;
+	}
+	static char buf[8192];
+	long n;
+	res->status = 200;
+	res->length = 0;
+	while ((n = read(fd, buf, sizeof(buf))) > 0) {
+		res->length += n;
+		if (sink(ctx, buf, (size_t)n)) {
+			break;
+		}
+	}
+	close(fd);
+	if (n < 0) {
+		snprintf(res->error, sizeof(res->error), "%s: %s", url, strerror(errno));
+		return 1;
+	}
+	return 0;
+}
+
 static long fetch_mem(const char *name, char *buf, size_t max)
 {
 	char url[256];
 	snprintf(url, sizeof(url), "%s/%s", repo, name);
 	struct membuf m = {buf, 0, max};
 	struct http_result res;
-	if (http_get(url, to_mem, &m, &res)) {
+	if (repo_get(name, 0, to_mem, &m, &res)) {
 		die("%s: %s", url, res.error);
 	}
 	if (res.status != 200) {
@@ -827,7 +869,9 @@ static int install_at(const char *name, int depth, int quiet)
 	sha256_init(&d.h);
 	d.got = 0;
 	struct http_result res;
-	int rc = http_get(url, to_file, &d, &res);
+	char alt[32];
+	snprintf(alt, sizeof(alt), "pkgs/%s.tar", name);
+	int rc = repo_get(k->file, alt, to_file, &d, &res);
 	close(d.fd);
 	if (rc || res.status != 200) {
 		fprintf(stderr, "pkg: %s: %s", url, rc ? res.error : "HTTP ");

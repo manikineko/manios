@@ -25,6 +25,7 @@ pkg remove NAME...      uninstall (not what an installed package needs)
 pkg remove -f NAME...   uninstall even so
 pkg upgrade             install newer versions of what is installed
 pkg -u URL update       use another repository (remembered for later commands)
+pkg -u /n/CD/REPO update  a directory as the repository, such as the install CD (0.30.0)
 ```
 
 An installed program's command works at once, and after a reboot too: the
@@ -68,6 +69,9 @@ of where it came from:
 - Archive entries must be relative 8.3 paths without `..`; native packages
   may only write `bin/` and `share/NAME/`, DOS packages only their own
   `dos/NAME/` directory.
+
+A directory repository (the install CD's `REPO`) is checked the same
+way: its `INDEX.TXT` needs the signature, each package its SHA-256.
 
 An attacker on the network can stop an install, or serve an older signed
 index, but cannot make `pkg` install bytes the key did not sign.

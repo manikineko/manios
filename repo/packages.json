@@ -409,6 +409,28 @@
         "bin/dos": "build/bootfs/bin/dos",
         "bin/dosrun": "build/bootfs/bin/dosrun"
       }
+    },
+    {
+      "name": "manide",
+      "kind": "native",
+      "title": "ManiDE: the ManiOS desktop",
+      "summary": "The tiling desktop (manide) and its programs: terminal, files, calculator, clock, paint, viewer and more. Systems with ManiDE built in have it already.",
+      "license": "BSD-2-Clause",
+      "files": {
+        "bin/manide": "build/bootfs/bin/manide",
+        "bin/desktop": "build/bootfs/bin/desktop",
+        "share/manide/session": "userland/etc/manide",
+        "bin/about": "build/bootfs/bin/about",
+        "bin/calc": "build/bootfs/bin/calc",
+        "bin/clock": "build/bootfs/bin/clock",
+        "bin/files": "build/bootfs/bin/files",
+        "bin/greet": "build/bootfs/bin/greet",
+        "bin/paint": "build/bootfs/bin/paint",
+        "bin/term": "build/bootfs/bin/term",
+        "bin/view": "build/bootfs/bin/view",
+        "bin/welcome": "build/bootfs/bin/welcome",
+        "bin/widgets": "build/bootfs/bin/widgets"
+      }
     }
   ],
   "groups": {

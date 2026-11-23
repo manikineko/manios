@@ -306,12 +306,36 @@ pkg install @dos-tools   # a group of packages</pre>
 """
 
 
+def write_cd(cd, out, pkgs):
+    """The repository as the install CD carries it (ISO 9660, 8.3 names):
+    INDEX.TXT and INDEX.SIG as signed, PKGS/NAME.TAR, and the sources as
+    SRC/NAME.ZIP or SRC/NAME.TGZ. pkg reads a directory repository and
+    looks for PKGS/NAME.TAR when the index's file name is not there."""
+    shutil.rmtree(cd, ignore_errors=True)
+    (cd / "PKGS").mkdir(parents=True)
+    (cd / "SRC").mkdir()
+    shutil.copyfile(out / "index.txt", cd / "INDEX.TXT")
+    shutil.copyfile(out / "index.sig", cd / "INDEX.SIG")
+    for p in pkgs:
+        shutil.copyfile(out / p["file"], cd / "PKGS" / f"{p['name'].upper()}.TAR")
+        src = out / p["source"]
+        if src.is_file():
+            ext = "TGZ" if src.name.endswith(".tar.gz") else "ZIP"
+            shutil.copyfile(src, cd / "SRC" / f"{p['name'].upper()}.{ext}")
+    (cd / "README.TXT").write_text(
+        "The ManiOS package repository, as on http://manios.nl/repo, for\r\n"
+        "installing without a network: pkg -u /n/CD/REPO update (CD: the\r\n"
+        "drive's name in /n). SRC holds each DOS package's source; ManiOS's\r\n"
+        "own source is at https://github.com/manikineko/manios.\r\n")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--recipes", default=ROOT / "repo/packages.json", type=Path)
     ap.add_argument("--downloads", required=True, type=Path)
     ap.add_argument("--key", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--cd", type=Path, help="also write the install CD's copy (8.3 names) here")
     args = ap.parse_args()
     try:
         import nacl.signing
@@ -357,6 +381,8 @@ def main():
     for f in sorted(p for p in out.rglob("*") if p.is_file() and p.name != "SHA256SUMS"):
         sums.append(f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.relative_to(out)}")
     (out / "SHA256SUMS").write_text("\n".join(sums) + "\n")
+    if args.cd:
+        write_cd(args.cd, out, pkgs)
     print(f"mkrepo: {len(pkgs)} packages, index {len(text)} bytes, signed by "
           f"{bytes(key.verify_key).hex()[:16]}...")
 

@@ -59,12 +59,15 @@ add what their profile lists.
 
 ### 2. ManiOS components become packages
 
+*Built in 0.30.0: `manidos`, `manide`, `requires`, groups, and a directory
+(the CD's `REPO`) as a repository.*
+
 New native packages, built from this repository by `tools/mkrepo.py`:
 
 | Package   | What it holds                            |
 |-----------|------------------------------------------|
 | `manidos` | `dos`, `dosrun` (ManiOS's DOS runtime)   |
-| `manide`  | ManiDE and its programs (`desktop`, `fm`, ...) |
+| `manide`  | ManiDE and its programs (`desktop`, `term`, `files`, ...) |
 
 `pkg` gains **dependencies**: a `requires NAME...` line in the index.
 `pkg install` installs what is required first, `pkg remove` refuses to

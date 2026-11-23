@@ -11,7 +11,12 @@ other tool is needed, and the same inputs give the same image.
                     CDBOOT.BIN, MANIOS.BIN (the boot area), other files
 
 Usage: tools/mkiso.py --bootarea AREA --cdboot CDBOOT --mbr MBR
-                      [--volume ID] [--file NAME=PATH]... -o OUT
+                      [--volume ID] [--file NAME=PATH]... [--dir NAME=DIR]... -o OUT
+
+--dir adds DIR's tree as the directory NAME (0.30.0: the installer's
+offline package repository); every name in it must be 8.3. Directory
+entries are sorted by name, as ISO 9660 asks (before 0.30.0 BOOT.CAT
+came first).
 The date is SOURCE_DATE_EPOCH's, or the ManiOS release's day.
 """
 import argparse
@@ -34,6 +39,13 @@ def both32(v):
 
 def sectors(n):
     return (n + SECTOR - 1) // SECTOR
+
+
+def dir_name(name):
+    ok = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+    if not name or len(name) > 8 or not set(name.upper()) <= ok:
+        sys.exit(f"mkiso: directory {name!r} is not an 8-character name")
+    return name.upper().encode()
 
 
 def iso_name(name):
@@ -71,24 +83,77 @@ class Iso:
         rec[0] = len(rec)
         return bytes(rec)
 
-    def build(self, files, boot_name, bootarea_name, mbr):
-        """files: [(8.3 name, bytes)] including the boot image and area."""
-        path_l, path_m, root_lba, catalog_lba = 19, 20, 21, 22
+    @staticmethod
+    def pack(records):
+        """Directory records laid out so that none crosses a sector."""
+        out = bytearray()
+        for rec in records:
+            if len(out) % SECTOR + len(rec) > SECTOR:
+                out += bytes(SECTOR - len(out) % SECTOR)
+            out += rec
+        return bytes(out)
+
+    def build(self, files, boot_name, bootarea_name, mbr, subdirs=None):
+        """files: [(8.3 name, bytes)] for the root, including the boot
+        image and area; subdirs: {NAME: {"files": [...], "dirs": {...}}}."""
+        path_l, path_m, root_lba = 19, 20, 21
+        # Every directory, breadth first (path table order): its entry
+        # name, its parent's number (1-based), the tree node.
+        dirs = [(b"\0", 1, {"files": files, "dirs": subdirs or {}})]
+        i = 0
+        while i < len(dirs):
+            for name in sorted(dirs[i][2]["dirs"], key=dir_name):
+                dirs.append((dir_name(name), i + 1, dirs[i][2]["dirs"][name]))
+            i += 1
+        # Sizes first (records depend on names only), then places.
+        def entries(k):
+            node = dirs[k][2]
+            names = [(dir_name(n), True, n) for n in node["dirs"]]
+            names += [(iso_name(n), False, n) for n, _ in node["files"]]
+            if k == 0:
+                names.append((iso_name("BOOT.CAT"), False, "BOOT.CAT"))
+            return sorted(names)
+        size = []
+        for k in range(len(dirs)):
+            recs = [self.record(b"\0", 0, 0, True), self.record(b"\1", 0, 0, True)]
+            recs += [self.record(n, 0, 0, d) for n, d, _ in entries(k)]
+            size.append(max(1, sectors(len(self.pack(recs)))) * SECTOR)
+        dir_lba, lba = [], root_lba
+        for k in range(len(dirs)):
+            dir_lba.append(lba)
+            lba += size[k] // SECTOR
+        catalog_lba = lba
         lba = catalog_lba + 1
         placed = []
         for name, data in files:
             placed.append((name, data, lba))
             lba += max(1, sectors(len(data)))
+        file_at = [{} for _ in dirs]
+        for k in range(1, len(dirs)):
+            for name, data in dirs[k][2]["files"]:
+                file_at[k][name] = (lba, len(data), data)
+                lba += max(1, sectors(len(data)))
+        file_at[0] = {name: (at, len(data), data) for name, data, at in placed}
         total = lba
         where = {name: (at, len(data)) for name, data, at in placed}
+        child = {}  # (parent number, entry name) -> directory number
+        for k in range(1, len(dirs)):
+            child[(dirs[k][1], dirs[k][0])] = k
 
-        # The root directory: ".", "..", then the files by name.
-        root = self.record(b"\0", root_lba, SECTOR, True) + self.record(b"\1", root_lba, SECTOR, True)
-        root += self.record(iso_name("BOOT.CAT"), catalog_lba, SECTOR)
-        for name, data, at in sorted(placed, key=lambda p: iso_name(p[0])):
-            root += self.record(iso_name(name), at, len(data))
-        if len(root) > SECTOR:
-            sys.exit("mkiso: too many files for one directory sector")
+        def directory(k):
+            parent = dirs[k][1] - 1
+            recs = [self.record(b"\0", dir_lba[k], size[k], True),
+                    self.record(b"\1", dir_lba[parent], size[parent], True)]
+            for n, is_dir, orig in entries(k):
+                if is_dir:
+                    c = child[(k + 1, n)]
+                    recs.append(self.record(n, dir_lba[c], size[c], True))
+                elif orig == "BOOT.CAT" and k == 0:
+                    recs.append(self.record(n, catalog_lba, SECTOR))
+                else:
+                    at, length, _ = file_at[k][orig]
+                    recs.append(self.record(n, at, length))
+            return self.pack(recs)
 
         image = bytearray(total * SECTOR)
 
@@ -107,7 +172,7 @@ class Iso:
         pvd[132:140] = both32(10)
         pvd[140:144] = struct.pack("<I", path_l)
         pvd[148:152] = struct.pack(">I", path_m)
-        pvd[156:190] = self.record(b"\0", root_lba, SECTOR, True)
+        pvd[156:190] = self.record(b"\0", root_lba, size[0], True)
         pvd[190:702] = b" " * 512  # volume set, publisher, preparer, application
         pvd[318:318 + 24] = b"THE MANIOS PROJECT".ljust(24)
         pvd[574:574 + 32] = b"MANIOS TOOLS/MKISO.PY".ljust(32)
@@ -127,10 +192,23 @@ class Iso:
         put(17, brvd)
         put(18, bytes([255]) + b"CD001" + bytes([1]))
 
-        # Path tables: only the root.
-        put(path_l, bytes([1, 0]) + struct.pack("<I", root_lba) + struct.pack("<H", 1) + b"\0\0")
-        put(path_m, bytes([1, 0]) + struct.pack(">I", root_lba) + struct.pack(">H", 1) + b"\0\0")
-        put(root_lba, root)
+        # Path tables: every directory, breadth first.
+        tl, tm = bytearray(), bytearray()
+        for k, (name, parent, _) in enumerate(dirs):
+            pad = b"\0" if len(name) % 2 else b""
+            tl += bytes([len(name), 0]) + struct.pack("<I", dir_lba[k]) + struct.pack("<H", parent) + name + pad
+            tm += bytes([len(name), 0]) + struct.pack(">I", dir_lba[k]) + struct.pack(">H", parent) + name + pad
+        if len(tl) > SECTOR:
+            sys.exit("mkiso: too many directories for one path table sector")
+        pvd_table = len(tl)
+        put(path_l, tl)
+        put(path_m, tm)
+        image[16 * SECTOR + 132:16 * SECTOR + 140] = both32(pvd_table)
+        for k in range(len(dirs)):
+            put(dir_lba[k], directory(k))
+        for k in range(1, len(dirs)):
+            for at, length, data in file_at[k].values():
+                put(at, data)
 
         # The boot catalog: a validation entry and the default entry,
         # "no emulation", 4 virtual sectors (the 2048 bytes of cdboot).
@@ -173,6 +251,7 @@ def main():
     ap.add_argument("--mbr", required=True)
     ap.add_argument("--volume", default="MANIOS")
     ap.add_argument("--file", action="append", default=[], help="NAME=PATH")
+    ap.add_argument("--dir", action="append", default=[], help="NAME=DIR")
     ap.add_argument("-o", dest="out", required=True)
     a = ap.parse_args()
     read = lambda path: open(path, "rb").read()
@@ -183,8 +262,21 @@ def main():
     for spec in a.file:
         name, _, path = spec.partition("=")
         files.append((name, read(path)))
+    def tree(path):
+        node = {"files": [], "dirs": {}}
+        for entry in sorted(os.listdir(path)):
+            full = os.path.join(path, entry)
+            if os.path.isdir(full):
+                node["dirs"][entry] = tree(full)
+            else:
+                node["files"].append((entry, read(full)))
+        return node
+    subdirs = {}
+    for spec in a.dir:
+        name, _, path = spec.partition("=")
+        subdirs[name] = tree(path)
     when = int(os.environ.get("SOURCE_DATE_EPOCH", "1790294400"))  # 2026-09-25
-    image = Iso(a.volume, when).build(files, "CDBOOT.BIN", "MANIOS.BIN", mbr)
+    image = Iso(a.volume, when).build(files, "CDBOOT.BIN", "MANIOS.BIN", mbr, subdirs)
     with open(a.out, "wb") as f:
         f.write(image)
 

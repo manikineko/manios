@@ -126,6 +126,9 @@ BASE_LEFT_OUT := $(BUILD)/bootfs/bin/manide $(DESKTOP_BOOTFS) $(BUILD)/bootfs/bi
                  $(BUILD)/bootfs/bin/dosrun
 BASE_FILES := $(filter-out $(BASE_LEFT_OUT),$(BOOTFS_FILES))
 BASE_BOOTAREA := $(BASE)/manios-base.bin
+# CD_REPO=DIR (tools/mkrepo.py --cd DIR) puts the signed package
+# repository on the ISO as REPO, for installing without a network.
+CD_REPO ?=
 
 .PHONY: all toolchain run test clean iso release test-images
 # A recipe that fails leaves no half-made file behind for make to trust.
@@ -302,7 +305,8 @@ $(BOOTAREA): $(MBR) $(STAGE2) $(KERNEL_STRIPPED) tools/mkbootarea.py VERSION
 $(ISO): $(BOOTAREA) $(BASE_BOOTAREA) $(CDBOOT) $(MBR) tools/mkiso.py README.md LICENSE
 	python3 tools/mkiso.py --bootarea $(BOOTAREA) --cdboot $(CDBOOT) --mbr $(MBR) \
 	    --volume MANIOS_$(subst .,_,$(VERSION)) --file README.TXT=README.md \
-	    --file LICENSE.TXT=LICENSE --file BASE.BIN=$(BASE_BOOTAREA) -o $@
+	    --file LICENSE.TXT=LICENSE --file BASE.BIN=$(BASE_BOOTAREA) \
+	    $(if $(CD_REPO),--dir REPO=$(CD_REPO)) -o $@
 
 $(BASE)/bootfs.tar: $(BASE_FILES)
 	@mkdir -p $(BASE)
