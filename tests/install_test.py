@@ -99,7 +99,8 @@ class Install:
         while data[p]:
             names.append(data[p + 33:p + 33 + data[p + 32]])
             p += data[p]
-        for name in [b"BOOT.CAT;1", b"CDBOOT.BIN;1", b"MANIOS.BIN;1", b"README.TXT;1", b"LICENSE.TXT;1"]:
+        for name in [b"BOOT.CAT;1", b"CDBOOT.BIN;1", b"MANIOS.BIN;1", b"README.TXT;1", b"LICENSE.TXT;1",
+                     b"BASE.BIN;1"]:
             check(name in names, f"{name!r} is not in the root directory: {names}")
         # Another reader agrees, where there is one.
         if shutil.which("xorriso"):
@@ -116,7 +117,9 @@ class Install:
                         "--mbr", os.path.join(self.build, "boot", "mbr.bin"),
                         "--volume", "MANIOS_" + self.version.replace(".", "_"),
                         "--file", "README.TXT=" + os.path.join(root_dir, "README.md"),
-                        "--file", "LICENSE.TXT=" + os.path.join(root_dir, "LICENSE"), "-o", again],
+                        "--file", "LICENSE.TXT=" + os.path.join(root_dir, "LICENSE"),
+                        "--file", "BASE.BIN=" + os.path.join(self.build, "base", "manios-base.bin"),
+                        "-o", again],
                        check=True)
         check(open(again, "rb").read() == data, "mkiso gave different bytes for the same inputs")
 

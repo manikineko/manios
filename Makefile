@@ -116,6 +116,16 @@ BOOTFS_FILES := $(patsubst %,$(BUILD)/bootfs/%,$(USER_PROGRAMS)) \
                 $(BUILD)/bootfs/bin/dosrun \
                 $(BUILD)/bootfs/test/pipeseek1
 BOOTFS_OBJECT := $(BUILD)/bootfs.o
+# The base system (ADR-0011, 0.30.0): the same kernel and programs
+# without ManiDE and ManiDOS, which installed systems get as packages
+# (manide, manidos). The ISO carries it as BASE.BIN beside the full boot
+# area; the installer writes it.
+BASE := $(BUILD)/base
+BASE_LEFT_OUT := $(BUILD)/bootfs/bin/manide $(DESKTOP_BOOTFS) $(BUILD)/bootfs/bin/desktop \
+                 $(BUILD)/bootfs/etc/manide $(BUILD)/bootfs/bin/dos $(BUILD)/bootfs/autoexec.bat \
+                 $(BUILD)/bootfs/bin/dosrun
+BASE_FILES := $(filter-out $(BASE_LEFT_OUT),$(BOOTFS_FILES))
+BASE_BOOTAREA := $(BASE)/manios-base.bin
 
 .PHONY: all toolchain run test clean iso release test-images
 # A recipe that fails leaves no half-made file behind for make to trust.
@@ -289,10 +299,27 @@ $(BOOTAREA): $(MBR) $(STAGE2) $(KERNEL_STRIPPED) tools/mkbootarea.py VERSION
 	python3 tools/mkbootarea.py --mbr $(MBR) --stage2 $(STAGE2) --kernel $(KERNEL_STRIPPED) \
 	    --version $(VERSION) -o $@
 
-$(ISO): $(BOOTAREA) $(CDBOOT) $(MBR) tools/mkiso.py README.md LICENSE
+$(ISO): $(BOOTAREA) $(BASE_BOOTAREA) $(CDBOOT) $(MBR) tools/mkiso.py README.md LICENSE
 	python3 tools/mkiso.py --bootarea $(BOOTAREA) --cdboot $(CDBOOT) --mbr $(MBR) \
 	    --volume MANIOS_$(subst .,_,$(VERSION)) --file README.TXT=README.md \
-	    --file LICENSE.TXT=LICENSE -o $@
+	    --file LICENSE.TXT=LICENSE --file BASE.BIN=$(BASE_BOOTAREA) -o $@
+
+$(BASE)/bootfs.tar: $(BASE_FILES)
+	@mkdir -p $(BASE)
+	tar --format=ustar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@0 \
+	    -C $(BUILD)/bootfs -cf $@ $(patsubst $(BUILD)/bootfs/%,%,$(BASE_FILES))
+
+$(BASE)/bootfs.o: $(BASE)/bootfs.tar
+	cd $(BASE) && $(OBJCOPY) -I binary -O elf32-i386 -B i386 \
+	    --rename-section .data=.rodata,alloc,load,readonly,data,contents bootfs.tar bootfs.o
+
+$(BASE)/manios-zkt.elf: $(OBJECTS) $(BASE)/bootfs.o zkt/arch/i386/linker.ld
+	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(BASE)/bootfs.o -lgcc
+
+$(BASE_BOOTAREA): $(MBR) $(STAGE2) $(BASE)/manios-zkt.elf tools/mkbootarea.py VERSION
+	$(STRIP) -o $(BASE)/manios-zkt.stripped.elf $(BASE)/manios-zkt.elf
+	python3 tools/mkbootarea.py --mbr $(MBR) --stage2 $(STAGE2) \
+	    --kernel $(BASE)/manios-zkt.stripped.elf --version $(VERSION) -o $@
 
 iso: $(ISO)
 
@@ -359,6 +386,7 @@ test: $(KERNEL) test-images
 	python3 tools/mkfont.py --check
 	tests/boot_smoke_test.sh $(KERNEL)
 	python3 tests/install_test.py $(BUILD)
+	python3 tests/base_system_test.py $(BUILD)
 	python3 tests/console_test.py $(KERNEL)
 	python3 tests/openbsd_test.py $(KERNEL)
 	python3 tests/net_test.py $(KERNEL)

@@ -18,6 +18,7 @@
 #include "zrp.h"
 #include "panic.h"
 #include "pmm.h"
+#include "vfs.h"
 #include "sched.h"
 #include "sched_selftest.h"
 #include "sha256.h"
@@ -59,6 +60,17 @@ static void start_zrp(void)
 /* verbose=1 on the command line: the whole boot log on the screen too.
  * Otherwise the screen shows what is being checked, and the log goes
  * only to COM1 (where the tests read it). */
+/* Whether PATH names something (the boot message's suggestions). */
+static bool in_bin(const char *path)
+{
+	struct file *f;
+	if (vfs_open(path, OREAD, &f) != 0) {
+		return false;
+	}
+	vfs_close(f);
+	return true;
+}
+
 static bool verbose_boot(void)
 {
 	char value[8];
@@ -180,7 +192,11 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_phys)
 	kconsole_progress(", cluster. All passed.\n");
 	kconsole_set_quiet(false);
 	net_start_dhcp(3000); /* after the self-tests: they count threads and memory */
-	kprintf("ManiOS " MANIOS_VERSION " is ready. Try ls /bin, help, fetch, manide (desktop), dos.\n");
+	/* A base system (0.30, BASE.BIN) has no ManiDE or ManiDOS until
+	 * they are installed as packages: suggest only what is there. */
+	kprintf("ManiOS " MANIOS_VERSION " is ready. Try ls /bin, help, fetch%s%s.\n",
+	        in_bin("/bin/manide") ? ", manide (desktop)" : "",
+	        in_bin("/bin/dos") ? ", dos" : ", pkg");
 
 	if (!thread_create("console", console_main, 0)) {
 		panic("could not start the console thread");

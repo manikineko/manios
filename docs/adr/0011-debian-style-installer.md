@@ -42,6 +42,8 @@ packages**, chosen by **profile**.
 
 ### 1. One ISO, two boot areas
 
+*Built in 0.30.0: `BASE.BIN` (`make`, `build/base/`); see the 0.30.0 notes.*
+
 The ISO carries:
 
 - `MANIOS.BIN`, the **full** boot area: what the live CD and the browser
