@@ -19,7 +19,7 @@
  *   SYS_UNLINK, SYS_MKDIR, SYS_RMDIR, SYS_RENAME and SYS_FILEATTR, and the
  *   O_CREAT, O_TRUNC and O_EXCL flags SYS_OPEN takes in its mode. A program
  *   built before them never calls them, and an open mode without the
- *   flags means what it always did. */
+ *   flags means what it always did. SYS_DIAL (0.29.0) is additive too. */
 #define ZKT_ABI_VERSION 2
 #define ZKT_ABI_VERSION_MIN 1 /* the oldest the kernel still runs */
 #define ZKT_NOTE_NAME "ZKT"
@@ -81,6 +81,10 @@
  * a writable filesystem. Existing dirent/STAT ABI stays unchanged. */
 #define SYS_FILETIME 30 /* (int fd, uint32_t *stamp, int set [0 or 1]) -> 0 */
 #define SYS_FILEATTR 31 /* (const char *path, uint8_t *attr, int set [0 or 1]) -> 0 */
+#define SYS_DIAL     32 /* (const char *dial) -> fd: a TCP connection, "tcp!HOST!PORT";
+                         * HOST is a name (resolved with DNS) or A.B.C.D. Reads and
+                         * writes are a byte stream; closing the last descriptor
+                         * closes the connection. Added under version 2 (0.29.0). */
 
 /* Paths may be relative to the process's current directory ("/" for a
  * program the kernel starts; a child inherits its parent's). They are
@@ -191,7 +195,9 @@ struct zkt_pollfd {
 #define EPROTO       71  /* a malformed protocol message (ZRP) */
 #define EADDRINUSE   98
 #define ENETUNREACH 101
+#define ECONNRESET  104  /* the peer reset the connection (TCP) */
 #define ETIMEDOUT   110
+#define ECONNREFUSED 111 /* nothing listens at that port (TCP) */
 #define EHOSTUNREACH 113
 
 #endif

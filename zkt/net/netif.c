@@ -1,5 +1,6 @@
 /* Interfaces, the network thread, loopback, and stack start-up. */
 #include "net.h"
+#include "tcp.h"
 #include "device.h"
 #include "cmdline.h"
 #include "cpu.h"
@@ -246,6 +247,13 @@ static void configure(struct netif *ifc)
 	if (cmdline_get("gw", value, sizeof(value)) && !ip_parse(value, &gw, 0)) {
 		kprintf("net: ignoring malformed gw=%s\n", value);
 	}
+	if (cmdline_get("dns", value, sizeof(value))) {
+		if (ip_parse(value, &net_dns, 0)) {
+			net_dns_from_cmdline = true;
+		} else {
+			kprintf("net: ignoring malformed dns=%s\n", value);
+		}
+	}
 	ifc->ip = ip;
 	ifc->netmask = prefix ? ~0u << (32 - prefix) : 0;
 	ifc->gateway = gw;
@@ -330,4 +338,5 @@ void net_init(void)
 	if (!network_thread) {
 		panic("net: cannot start the network thread");
 	}
+	tcp_init();
 }

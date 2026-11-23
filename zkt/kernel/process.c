@@ -202,7 +202,68 @@ static const char *basename(const char *path)
 	return base;
 }
 
+static int spawn(const char *path, int argc, char *const argv[], struct process *parent,
+                 int depth);
+
+/* A script: "#!INTERPRETER [ARG]" on its first line. The interpreter (an
+ * executable, not another script) runs with argv INTERPRETER [ARG] PATH
+ * followed by the script's own arguments, as on Unix. */
+static int spawn_script(const char *path, const uint8_t *image, size_t size, int argc,
+                        char *const argv[], struct process *parent)
+{
+	char line[VFS_PATH_MAX + 64];
+	size_t n = 0;
+	for (size_t i = 2; i < size && image[i] != '\n'; i++) {
+		if (n + 1 >= sizeof(line)) {
+			return -ENOEXEC;
+		}
+		line[n++] = image[i] == '\r' ? ' ' : (char)image[i];
+	}
+	line[n] = 0;
+	char *interp = line;
+	while (*interp == ' ' || *interp == '\t') {
+		interp++;
+	}
+	char *arg = interp;
+	while (*arg && *arg != ' ' && *arg != '\t') {
+		arg++;
+	}
+	if (*arg) {
+		*arg++ = 0;
+		while (*arg == ' ' || *arg == '\t') {
+			arg++;
+		}
+		char *end = arg + strlen(arg);
+		while (end > arg && (end[-1] == ' ' || end[-1] == '\t')) {
+			*--end = 0;
+		}
+	}
+	if (!*interp) {
+		return -ENOEXEC;
+	}
+	char *nargv[SPAWN_ARGS_MAX];
+	int nargc = 0;
+	nargv[nargc++] = interp;
+	if (*arg) {
+		nargv[nargc++] = arg;
+	}
+	nargv[nargc++] = (char *)path;
+	for (int i = 1; i < argc; i++) {
+		if (nargc == SPAWN_ARGS_MAX) {
+			return -E2BIG;
+		}
+		nargv[nargc++] = argv[i];
+	}
+	return spawn(interp, nargc, nargv, parent, 1);
+}
+
 int process_spawn(const char *path, int argc, char *const argv[], struct process *parent)
+{
+	return spawn(path, argc, argv, parent, 0);
+}
+
+static int spawn(const char *path, int argc, char *const argv[], struct process *parent,
+                 int depth)
 {
 	if (argc < 1 || argc > SPAWN_ARGS_MAX) {
 		return -E2BIG;
@@ -211,6 +272,11 @@ int process_spawn(const char *path, int argc, char *const argv[], struct process
 	size_t size;
 	int rc = read_executable(path, &image, &size);
 	if (rc) {
+		return rc;
+	}
+	if (size >= 2 && image[0] == '#' && image[1] == '!') {
+		rc = depth ? -ENOEXEC : spawn_script(path, image, size, argc, argv, parent);
+		kfree(image);
 		return rc;
 	}
 

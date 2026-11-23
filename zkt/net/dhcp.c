@@ -26,6 +26,7 @@
 #define OPT_PAD 0
 #define OPT_NETMASK 1
 #define OPT_ROUTER 3
+#define OPT_DNS 6
 #define OPT_REQUESTED_IP 50
 #define OPT_LEASE_TIME 51
 #define OPT_MESSAGE_TYPE 53
@@ -40,7 +41,7 @@
 #define NAK 6
 
 struct lease {
-	uint32_t ip, netmask, gateway, server, seconds;
+	uint32_t ip, netmask, gateway, server, seconds, dns;
 };
 
 static struct netif *ifc;
@@ -86,9 +87,10 @@ static int send_message(int type, uint32_t want, uint32_t server)
 		o += 4;
 	}
 	*o++ = OPT_PARAMETERS;
-	*o++ = 3;
+	*o++ = 4;
 	*o++ = OPT_NETMASK;
 	*o++ = OPT_ROUTER;
+	*o++ = OPT_DNS;
 	*o++ = OPT_LEASE_TIME;
 	*o = OPT_END;
 
@@ -135,6 +137,8 @@ static int parse(const uint8_t *b, long len, struct lease *l)
 			l->netmask = get_be32(v);
 		} else if (code == OPT_ROUTER && n >= 4) {
 			l->gateway = get_be32(v);
+		} else if (code == OPT_DNS && n >= 4) {
+			l->dns = get_be32(v); /* the first; the others are fallbacks */
 		} else if (code == OPT_SERVER_ID && n == 4) {
 			l->server = get_be32(v);
 		} else if (code == OPT_LEASE_TIME && n == 4) {
@@ -196,6 +200,9 @@ static void apply(const struct lease *l)
 	ifc->ip = l->ip;
 	ifc->netmask = mask;
 	ifc->gateway = l->gateway;
+	if (l->dns && !net_dns_from_cmdline) {
+		net_dns = l->dns;
+	}
 	cpu_irq_restore(flags);
 	int prefix = 0;
 	for (uint32_t m = mask; m & 0x80000000u; m <<= 1) {

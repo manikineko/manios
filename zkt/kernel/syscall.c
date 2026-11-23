@@ -1,6 +1,8 @@
 #include "syscall.h"
 #include "heap.h"
+#include "dns.h"
 #include "kerrno.h"
+#include "tcp.h"
 #include "kprintf.h"
 #include "kstring.h"
 #include "namespace.h"
@@ -369,6 +371,57 @@ static long sys_mount(struct process *p, const char *udial, const char *uold, in
 	return rc;
 }
 
+/* "tcp!HOST!PORT": resolve HOST (dns.c), connect, and give the
+ * connection a descriptor. */
+static long sys_dial(struct process *p, const char *udial)
+{
+	char dial[DNS_NAME_MAX + 16];
+	long rc = copy_string_from_user(dial, udial, sizeof(dial));
+	if (rc < 0) {
+		return rc;
+	}
+	if (strncmp(dial, "tcp!", 4) != 0) {
+		return -EINVAL;
+	}
+	char *host = dial + 4, *bang = host;
+	while (*bang && *bang != '!') {
+		bang++;
+	}
+	if (!*bang || bang == host || !bang[1]) {
+		return -EINVAL;
+	}
+	*bang = 0;
+	uint32_t port = 0;
+	for (const char *d = bang + 1; *d; d++) {
+		if (*d < '0' || *d > '9' || (port = port * 10 + (uint32_t)(*d - '0')) > 65535) {
+			return -EINVAL;
+		}
+	}
+	if (!port) {
+		return -EINVAL;
+	}
+	uint32_t ip;
+	rc = dns_resolve(host, &ip);
+	if (rc) {
+		return rc;
+	}
+	struct vnode *conn;
+	rc = tcp_connect(ip, (uint16_t)port, 15000, &conn);
+	if (rc) {
+		return rc;
+	}
+	struct file *f;
+	if (vfs_open_vnode(conn, ORDWR, "tcp", &f) != 0) {
+		vnode_unref(conn);
+		return -ENOMEM;
+	}
+	int fd = process_fd_install(p, f);
+	if (fd < 0) {
+		vfs_close(f);
+	}
+	return fd;
+}
+
 static long sys_pipe(struct process *p, int *ufds)
 {
 	struct vnode *ends[2];
@@ -592,6 +645,7 @@ long syscall_dispatch(uint32_t num, uint32_t a0, uint32_t a1, uint32_t a2,
 	case SYS_GETCWD: return sys_getcwd(p, (char *)a0, a1);
 	case SYS_POLL:   return poll_files(p, (void *)a0, a1, (int32_t)a2);
 	case SYS_PIPE:   return sys_pipe(p, (int *)a0);
+	case SYS_DIAL:   return sys_dial(p, (const char *)a0);
 	case SYS_DUP: {
 		struct file *f = process_fd(p, (int)a0);
 		if (!f) {

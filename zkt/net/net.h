@@ -85,6 +85,11 @@ void net_start_dhcp(uint32_t wait_ms);
 void dhcp_start(struct netif *ifc);
 bool dhcp_leased(void);
 
+/* The DNS server dns.c asks (0: none known): dns= on the command line,
+ * else the one DHCP offered, else the gateway. */
+extern uint32_t net_dns;
+extern bool net_dns_from_cmdline;
+
 /* "A.B.C.D" (with optional "/N") to an address; false if malformed. */
 bool ip_parse(const char *s, uint32_t *ip, int *prefix);
 /* Formats into buf (at least 16 bytes); returns buf. */

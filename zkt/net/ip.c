@@ -1,5 +1,6 @@
 /* IPv4 (RFC 791) without fragmentation, and ICMP echo (RFC 792). */
 #include "net.h"
+#include "tcp.h"
 #include "cpu.h"
 #include "heap.h"
 #include "kerrno.h"
@@ -9,6 +10,7 @@
 #include "timer.h"
 
 #define PROTO_ICMP 1
+#define PROTO_TCP  6
 #define PROTO_UDP  17
 #define IP_FLAG_DF 0x4000
 #define IP_FRAGMENT_BITS 0x3FFF /* MF, and the fragment offset */
@@ -144,6 +146,9 @@ void ip_input(struct netif *ifc, const uint8_t *p, size_t len)
 		break;
 	case PROTO_UDP:
 		udp_input(src, dst, p + ihl, total - ihl);
+		break;
+	case PROTO_TCP:
+		tcp_input(src, dst, p + ihl, total - ihl);
 		break;
 	default:
 		break;

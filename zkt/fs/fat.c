@@ -204,7 +204,10 @@ static int fat_set_entry(struct fat_fs *fs, uint32_t cluster, uint32_t value)
 		rc = fat_patch_byte(fs, offset, 0x0F, (uint8_t)((value & 0x0F) << 4));
 		return rc ? rc : fat_patch_byte(fs, offset + 1, 0x00, (uint8_t)(value >> 4));
 	}
-	rc = fat_patch_byte(fs, offset, 0xFF, (uint8_t)(value & 0xFF));
+	/* An even cluster owns its first byte whole: replace it (keeping
+	 * its old bits, before 0.29.0, left a link to the next cluster ORed
+	 * into the end-of-chain marker, so chains broke after two clusters). */
+	rc = fat_patch_byte(fs, offset, 0x00, (uint8_t)(value & 0xFF));
 	return rc ? rc : fat_patch_byte(fs, offset + 1, 0xF0, (uint8_t)((value >> 8) & 0x0F));
 }
 

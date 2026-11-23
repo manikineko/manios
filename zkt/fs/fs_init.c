@@ -8,7 +8,9 @@
 #include "kprintf.h"
 #include "namespace.h"
 #include "panic.h"
+#include <stdbool.h>
 #include "ramfs.h"
+#include "zkt_abi.h"
 #include "sched.h"
 
 void fs_init(void)
@@ -70,6 +72,26 @@ void fs_init(void)
 		ksnprintf(label, sizeof(label), "%s:%s", kind, d->name);
 		if (ramfs_mkdir(root, dir) == 0 && vfs_mount(fs_root, label, path, BIND_REPLACE) == 0) {
 			kprintf("%s: %s, mounted at %s\n", d->name, desc, path);
+		}
+	}
+
+	/* Installed packages (pkg, 0.29.0): the first disk holding
+	 * manios/pkg/bin has its commands added after the boot archive's. */
+	for (struct device *d = device_next(0); d; d = device_next(d)) {
+		char bin[24 + DEVICE_NAME_MAX];
+		struct file *f;
+		if (d->class != DEVICE_BLOCK) {
+			continue;
+		}
+		ksnprintf(bin, sizeof(bin), "/n/%s/manios/pkg/bin", d->name);
+		if (vfs_open(bin, OREAD, &f) != 0) {
+			continue;
+		}
+		bool dir = vfs_type(f) == VNODE_DIR;
+		vfs_close(f);
+		if (dir && vfs_bind(bin, "/bin", BIND_AFTER) == 0) {
+			kprintf("pkg: %s added to /bin\n", bin);
+			break;
 		}
 	}
 }

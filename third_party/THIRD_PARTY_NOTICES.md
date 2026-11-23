@@ -669,3 +669,14 @@ OpenBSD's libc, from the same commit.
 - **Notice preserved at:** <path to the file whose header carries the
   original copyright/license text>
 ```
+
+## TweetNaCl (Ed25519 arithmetic)
+
+- **Origin:** TweetNaCl, https://tweetnacl.cr.yp.to/ (Daniel J. Bernstein,
+  Wesley Janssen, Tanja Lange, Peter Schwabe, Matthew Dempsky and Sjaak
+  Smetsers)
+- **License:** public domain, as stated by its authors; no notice is
+  required. Recorded here for provenance.
+- **Location in this repo:** `libc/ed25519.c` follows TweetNaCl's field
+  and group arithmetic for Ed25519 signature verification (0.29.0); the
+  curve constants were recomputed from RFC 8032, and signing was left out.

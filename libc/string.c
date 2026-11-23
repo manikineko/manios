@@ -263,6 +263,8 @@ char *strerror(int err)
 	case EADDRINUSE:   return "address in use";
 	case ENETUNREACH:  return "network unreachable";
 	case ETIMEDOUT:    return "timed out";
+	case ECONNREFUSED: return "connection refused";
+	case ECONNRESET:   return "connection reset";
 	case EHOSTUNREACH: return "host unreachable";
 	case ENOTTY:       return "not a terminal";
 	case EINTR:        return "interrupted system call";

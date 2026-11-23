@@ -1,6 +1,17 @@
 /* dosrun -- run a DOS program (.COM or .EXE) on ManiOS.
  *
  *   dosrun [--mount LETTER=/directory] [--env NAME=value] PROGRAM [ARGS...]
+ *   dosrun --launcher SCRIPT [ARGS...]
+ *
+ * A launcher is how pkg installs a DOS program as a command: a script
+ * whose first line is "#!/bin/dosrun --launcher", so the kernel runs
+ * dosrun with the script's path. Its other lines say what to run:
+ * "program PATH" (required), and any "mount LETTER=/directory" and
+ * "env NAME=value" lines, as the options above, and "envpath
+ * NAME=/manios/path" lines, whose value is turned into the DOS path of
+ * that directory. A launched program starts in the shell's current
+ * directory (as its DOS drive and directory), so file names typed after
+ * the command mean what they mean in the shell.
  *
  * The program is loaded into an 8086 interpreter (cpu.c), and its DOS
  * and BIOS calls (dosapi.c) are served by ManiOS: the console is this
@@ -22,6 +33,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 /* manios.h declares the native fstat ABI; this file uses POSIX stat. */
 extern uint32_t uptime_ms(void);
@@ -30,8 +42,71 @@ extern uint32_t uptime_ms(void);
  * so a program in a tight loop still sees input. */
 #define SLICE 100000
 
+static char *envpath_name[8], *envpath_value[8];
+static int envpaths, launched;
+
+/* Rewrites argv for "--launcher SCRIPT ARGS...": the options and program
+ * the script names, then ARGS. Returns the new argc, or -1. */
+static int launcher(int argc, char **argv, char ***out)
+{
+	static char text[2048];
+	static char *nargv[64];
+	FILE *f = fopen(argv[2], "r");
+	if (!f) {
+		fprintf(stderr, "dosrun: %s: cannot read the launcher\n", argv[2]);
+		return -1;
+	}
+	size_t len = fread(text, 1, sizeof(text) - 1, f);
+	fclose(f);
+	text[len] = 0;
+	int n = 0;
+	nargv[n++] = argv[0];
+	char *program = NULL;
+	char *line = strchr(text, '\n'); /* skip the #! line */
+	while (line && *++line) {
+		char *end = strchr(line, '\n');
+		if (end) {
+			*end = 0;
+		}
+		size_t l = strlen(line);
+		if (l && line[l - 1] == '\r') {
+			line[--l] = 0;
+		}
+		if (!strncmp(line, "program ", 8)) {
+			program = line + 8;
+		} else if (!strncmp(line, "envpath ", 8) && envpaths < 8 && strchr(line + 8, '=')) {
+			char *eq = strchr(line + 8, '=');
+			*eq = 0;
+			envpath_name[envpaths] = line + 8;
+			envpath_value[envpaths++] = eq + 1;
+		} else if ((!strncmp(line, "mount ", 6) || !strncmp(line, "env ", 4)) && n < 60) {
+			nargv[n++] = line[0] == 'm' ? "--mount" : "--env";
+			nargv[n++] = line + (line[0] == 'm' ? 6 : 4);
+		}
+		line = end;
+	}
+	if (!program || !*program) {
+		fprintf(stderr, "dosrun: %s: the launcher names no program\n", argv[2]);
+		return -1;
+	}
+	nargv[n++] = program;
+	for (int i = 3; i < argc && n < 63; i++) {
+		nargv[n++] = argv[i];
+	}
+	nargv[n] = NULL;
+	*out = nargv;
+	launched = 1;
+	return n;
+}
+
 int main(int argc, char **argv)
 {
+	if (argc >= 3 && !strcmp(argv[1], "--launcher")) {
+		argc = launcher(argc, argv, &argv);
+		if (argc < 0) {
+			return 1;
+		}
+	}
 	char letters[26]; const char *roots[26]; int mounts = 0;
 	char envnames[ENV_EXTRA_MAX][ENV_NAME_MAX], envvalues[ENV_EXTRA_MAX][ENV_VALUE_MAX];
 	int envs = 0;
@@ -107,6 +182,22 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	for (int i = 0; i < envs; i++) dos_set_env(envnames[i], envvalues[i]);
+	for (int i = 0; i < envpaths; i++) {
+		char dospath[128], name[ENV_NAME_MAX];
+		if (dos_guest_path(envpath_value[i], dospath, sizeof(dospath)) == 0) {
+			snprintf(name, sizeof(name), "%s", envpath_name[i]);
+			for (char *c = name; *c; c++) *c = (char)toupper((unsigned char)*c);
+			dos_set_env(name, dospath);
+		}
+	}
+	if (launched) {
+		/* Start where the shell is, when that is on a DOS drive. */
+		char cwd[256], dospath[256];
+		if (getcwd(cwd, sizeof(cwd)) && dos_guest_path(cwd, dospath, sizeof(dospath)) == 0
+		    && dos_set_drive(toupper((unsigned char)dospath[0]) - 'A') == 0) {
+			dos_chdir(dospath);
+		}
+	}
 	dos_set_program(dos, 0x1000, 0x1010);
 	if (dos_set_executable(dos, prog) < 0) {
 		fprintf(stderr, "dosrun: executable path cannot be represented on a mounted DOS drive\n");

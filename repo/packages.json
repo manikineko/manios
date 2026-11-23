@@ -1,0 +1,354 @@
+{
+  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. Left out for now: find (FreeDOS FIND looks for relative names on A:, which a launcher cannot arrange) and unzip (the FreeDOS 1.4 package is the 32-bit DJGPP build, which needs DPMI).",
+  "origin_base": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/",
+  "packages": [
+    {
+      "name": "arj",
+      "zip": "arj.zip",
+      "origin": "archiver/arj.zip",
+      "compat": "marathon-arj",
+      "files": {
+        "BIN/": "",
+        "DOC/ARJ/": "DOC/"
+      },
+      "skip": [
+        "BIN/REARJ.CFG"
+      ],
+      "cmds": {
+        "arj": "ARJ.EXE"
+      }
+    },
+    {
+      "name": "attrib",
+      "zip": "attrib.zip",
+      "origin": "base/attrib.zip",
+      "compat": "freedos-attrib",
+      "files": {
+        "BIN/": "",
+        "DOC/ATTRIB/": "DOC/"
+      },
+      "cmds": {
+        "attrib": "ATTRIB.COM"
+      }
+    },
+    {
+      "name": "b64",
+      "zip": "b64.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/b64.zip",
+      "compat": "b64",
+      "files": {
+        "UTIL/B64/": ""
+      },
+      "cmds": {
+        "b64": "B64.EXE"
+      }
+    },
+    {
+      "name": "bc",
+      "zip": "gnubc.zip",
+      "origin": "unix/gnubc.zip",
+      "compat": "marathon-gnubc",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "bc": "BC.EXE"
+      }
+    },
+    {
+      "name": "bsum",
+      "zip": "bsum.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/bsum.zip",
+      "compat": "bsum",
+      "files": {
+        "bin/": "",
+        "doc/dwol/": "DOC/"
+      },
+      "cmds": {
+        "bsum": "BSUM.COM"
+      }
+    },
+    {
+      "name": "cal",
+      "zip": "cal.zip",
+      "origin": "unix/cal.zip",
+      "compat": "marathon-cal",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "cal": "CAL.COM"
+      }
+    },
+    {
+      "name": "deltree",
+      "zip": "deltree.zip",
+      "origin": "base/deltree.zip",
+      "compat": "freedos-deltree",
+      "files": {
+        "BIN/": "",
+        "DOC/DELTREE/": "DOC/"
+      },
+      "cmds": {
+        "deltree": "DELTREE.COM"
+      }
+    },
+    {
+      "name": "du",
+      "zip": "du.zip",
+      "origin": "unix/du.zip",
+      "compat": "marathon-du",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "du": "DU.EXE"
+      }
+    },
+    {
+      "name": "fc",
+      "zip": "fc.zip",
+      "origin": "base/fc.zip",
+      "compat": "freedos-fc",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/",
+        "DOC/FC/": "DOC/"
+      },
+      "cmds": {
+        "fc": "FC.EXE"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ]
+    },
+    {
+      "name": "fdbanner",
+      "zip": "fdbanner.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/fdbanner.zip",
+      "compat": "fdbanner",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "fdbanner": "FDBANNER.COM"
+      }
+    },
+    {
+      "name": "grep",
+      "zip": "grep.zip",
+      "origin": "unix/grep.zip",
+      "compat": "marathon-grep",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "dgrep": "GREP.EXE"
+      }
+    },
+    {
+      "name": "gzip",
+      "zip": "gzip.zip",
+      "origin": "archiver/gzip.zip",
+      "compat": "marathon-gzip",
+      "files": {
+        "BIN/": ""
+      },
+      "skip": [
+        "BIN/GZIP386.EXE"
+      ],
+      "cmds": {
+        "gzip": "GZIP.EXE"
+      }
+    },
+    {
+      "name": "head",
+      "zip": "head.zip",
+      "origin": "unix/head.zip",
+      "compat": "marathon-head",
+      "files": {
+        "BIN/": "",
+        "DOC/HEAD/": "DOC/"
+      },
+      "cmds": {
+        "dhead": "HEAD.COM"
+      }
+    },
+    {
+      "name": "mem",
+      "zip": "mem.zip",
+      "origin": "base/mem.zip",
+      "compat": "freedos-mem",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/",
+        "DOC/MEM/": "DOC/"
+      },
+      "cmds": {
+        "mem": "MEM.EXE"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ]
+    },
+    {
+      "name": "more",
+      "zip": "more.zip",
+      "origin": "base/more.zip",
+      "compat": "freedos-more",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/",
+        "DOC/MORE/": "DOC/"
+      },
+      "cmds": {
+        "more": "MORE.EXE"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ]
+    },
+    {
+      "name": "printf",
+      "zip": "dosutil.zip",
+      "origin": "util/dosutil.zip",
+      "compat": "marathon-dosutil",
+      "files": {
+        "BIN/PRINTF.COM": "PRINTF.COM"
+      },
+      "cmds": {
+        "printf": "PRINTF.COM"
+      },
+      "title": "printf (from DOSUTIL)",
+      "summary": "Formatted printing for batch files, from the DOSUTIL collection"
+    },
+    {
+      "name": "rcal",
+      "zip": "rcal.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/rcal.zip",
+      "compat": "marathon-rcal",
+      "files": {
+        "UTIL/RCAL/": ""
+      },
+      "cmds": {
+        "rcal": "RCAL.COM"
+      }
+    },
+    {
+      "name": "search",
+      "zip": "search.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/search.zip",
+      "compat": "search",
+      "files": {
+        "BIN/": "",
+        "DOC/SEARCH/": "DOC/"
+      },
+      "cmds": {
+        "search": "SEARCH.EXE"
+      }
+    },
+    {
+      "name": "sleep",
+      "zip": "sleep.zip",
+      "origin": "unix/sleep.zip",
+      "compat": "marathon-sleep",
+      "files": {
+        "BIN/": "",
+        "DOC/SLEEP/": "DOC/"
+      },
+      "cmds": {
+        "dsleep": "SLEEP.EXE"
+      }
+    },
+    {
+      "name": "tee",
+      "zip": "tee.zip",
+      "origin": "unix/tee.zip",
+      "compat": "marathon-tee",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/"
+      },
+      "cmds": {
+        "dtee": "TEE.EXE"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ]
+    },
+    {
+      "name": "touch",
+      "zip": "touch.zip",
+      "origin": "unix/touch.zip",
+      "compat": "marathon-touch",
+      "files": {
+        "BIN/": "",
+        "DOC/TOUCH/": "DOC/"
+      },
+      "cmds": {
+        "touch": "TOUCH.COM"
+      }
+    },
+    {
+      "name": "utf8tocp",
+      "zip": "utf8tocp.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/utf8tocp.zip",
+      "compat": "utf8tocp",
+      "files": {
+        "UTIL/utf8tocp/": ""
+      },
+      "cmds": {
+        "utf8tocp": "UTF8TOCP.COM"
+      }
+    },
+    {
+      "name": "xdel",
+      "zip": "xdel.zip",
+      "origin": "FreeDOS 1.4 BonusCD packages/util/xdel.zip",
+      "compat": "marathon-xdel",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/",
+        "DOC/XDEL/": "DOC/"
+      },
+      "cmds": {
+        "xdel": "XDEL.COM"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ]
+    },
+    {
+      "name": "xgrep",
+      "zip": "xgrep.zip",
+      "origin": "unix/xgrep.zip",
+      "compat": "marathon-xgrep",
+      "files": {
+        "BIN/": ""
+      },
+      "cmds": {
+        "xgrep": "XGREP.COM"
+      }
+    },
+    {
+      "name": "zoo",
+      "zip": "zoo.zip",
+      "origin": "archiver/zoo.zip",
+      "compat": "marathon-zoo",
+      "files": {
+        "BIN/": ""
+      },
+      "skip": [
+        "BIN/FIZ.EXE"
+      ],
+      "cmds": {
+        "zoo": "ZOO.EXE"
+      }
+    }
+  ]
+}

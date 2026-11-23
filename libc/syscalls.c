@@ -45,6 +45,7 @@ int open(const char *path, int mode)            { return (int)SC2(SYS_OPEN, path
 long lseek(int fd, long offset, int whence)     { return SC3(SYS_SEEK, fd, offset, whence); }
 int close(int fd)                               { return (int)SC1(SYS_CLOSE, fd); }
 int pipe(int fds[2])                            { return (int)SC1(SYS_PIPE, fds); }
+int dial(const char *addr)                      { return (int)SC1(SYS_DIAL, addr); }
 int dup(int fd)                                 { return (int)SC1(SYS_DUP, fd); }
 int dup2(int fd, int newfd)                     { return (int)SC2(SYS_DUP2, fd, newfd); }
 int poll(struct zkt_pollfd *fds, int count, int timeout_ms)

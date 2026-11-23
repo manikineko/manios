@@ -181,6 +181,25 @@ Each item is a defined behaviour, checked by `tests/dosrun_device_test.py`.
   used to be written at `PSP:FE00`, inside large programs. INT 2Fh answers
   only multiplex number 43h; other multiplex calls return unchanged.
 
+## Launchers (0.29.0)
+
+`dosrun --launcher SCRIPT [ARGS]` runs the DOS program a launcher script
+names. `pkg` writes one per DOS command; the kernel runs it through `#!`:
+
+```
+#!/bin/dosrun --launcher
+program /n/ata0p1/manios/pkg/dos/arj/ARJ.EXE
+env LANG=EN
+envpath NLSPATH=/n/ata0p1/manios/pkg/dos/arj/NLS
+mount P=/n/ata0p1/data
+```
+
+`program` is required. `env` and `mount` are the `--env` and `--mount`
+options; `envpath` sets a variable to the DOS path of a ManiOS directory.
+Unlike a plain `dosrun`, a launched program starts in the shell's current
+directory (as its DOS drive and directory), so `arj a TEST.ARJ FILE.TXT`
+works on the files where you are.
+
 ## The services
 
 Each mounted drive starts at its root and keeps an independent DOS current
