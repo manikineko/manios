@@ -1,8 +1,8 @@
 # ManiOS
 
 Current development version: **0.30.0** -- a Debian-style installer
-with profiles, and package dependencies ([notes](docs/releases/0.30.0.md),
-[plan](docs/adr/0011-debian-style-installer.md)).
+with profiles (desktop, server, server + DOS), ManiDE and ManiDOS as
+packages ([notes](docs/releases/0.30.0.md), [install](docs/install.md)).
 Latest release: [0.29.1](docs/releases/0.29.1.md) -- the `pkg` package
 manager and the repository at http://manios.nl/repo ([guide](docs/pkg.md)).
 

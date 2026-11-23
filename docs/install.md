@@ -245,7 +245,7 @@ What happens:
   partition** (type 0x06) after it, up to 2 GiB, that the installed
   system sees as `/n/ata0p2`: packages (`manios/pkg`), `home/`, and
   `manios/etc/rc` if you add one. The disk must be at least about 11 MiB.
-- When the CD has the package repository (`REPO`, release CDs), its
+- When the CD has the package repository (`REPO`: `manios-VERSION-offline.iso`), its
   signed index and packages are copied onto the data partition, so the
   CD can come out at once. Otherwise `--repo URL` (or the default,
   manios.nl) is used at the first start, which then needs the network.
