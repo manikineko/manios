@@ -28,18 +28,34 @@ export PATH="$PREFIX/bin:$PATH"
 mkdir -p "$SRC_DIR"
 cd "$SRC_DIR"
 
+# GNU mirrors, tried in turn: ftp.gnu.org alone has been unreachable from
+# CI (a release build failed on 2026-11-23). Every tarball must match its
+# pinned SHA-256, whichever mirror served it.
+GNU_MIRRORS="https://ftpmirror.gnu.org/gnu https://mirrors.kernel.org/gnu https://ftp.gnu.org/gnu"
+
 fetch() {
-  local url="$1" out="$2"
-  if [ ! -f "$out" ]; then
-    echo "==> Fetching $out"
-    curl -fL --retry 4 --retry-delay 2 -o "$out" "$url"
+  local path="$1" out="$2" sha="$3" m
+  if [ -f "$out" ] && echo "$sha  $out" | sha256sum -c --quiet - 2>/dev/null; then
+    return 0
   fi
+  for m in $GNU_MIRRORS; do
+    echo "==> Fetching $out from $m"
+    rm -f "$out"
+    if curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 -o "$out" "$m/$path" &&
+       echo "$sha  $out" | sha256sum -c --quiet -; then
+      return 0
+    fi
+    echo "==> $m failed or gave a wrong checksum" >&2
+  done
+  rm -f "$out"
+  echo "error: could not fetch $out from any GNU mirror" >&2
+  exit 1
 }
 
-fetch "https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.xz" \
-      "binutils-${BINUTILS_VERSION}.tar.xz"
-fetch "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz" \
-      "gcc-${GCC_VERSION}.tar.xz"
+fetch "binutils/binutils-${BINUTILS_VERSION}.tar.xz" "binutils-${BINUTILS_VERSION}.tar.xz" \
+      f6e4d41fd5fc778b06b7891457b3620da5ecea1006c6a4a41ae998109f85a800
+fetch "gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz" "gcc-${GCC_VERSION}.tar.xz" \
+      e275e76442a6067341a27f04c5c6b83d8613144004c0413528863dc6b5c743da
 
 [ -d "binutils-${BINUTILS_VERSION}" ] || tar xf "binutils-${BINUTILS_VERSION}.tar.xz"
 [ -d "gcc-${GCC_VERSION}" ] || tar xf "gcc-${GCC_VERSION}.tar.xz"
