@@ -59,6 +59,66 @@ def one_line(s, limit):
     return s if len(s) <= limit else s[: limit - 3].rstrip() + "..."
 
 
+def tar_of(files):
+    """A reproducible ustar archive of {path: bytes}."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w", format=tarfile.USTAR_FORMAT) as t:
+        for rel in sorted(files, key=str.upper):
+            ti = tarfile.TarInfo(rel)
+            ti.size = len(files[rel])
+            ti.mtime = MTIME
+            ti.mode = 0o644
+            ti.uname = ti.gname = "manios"
+            t.addfile(ti, io.BytesIO(files[rel]))
+    return buf.getvalue()
+
+
+def build_native(recipe, out, version):
+    """A native package from this tree's build (ManiOS components such as
+    ManiDOS): "files" maps a path in the package (bin/NAME or
+    share/PKG/...) to a file under the repository root. Its commands are
+    its bin/ files; pkg treats it as part of the system when they all are
+    in /boot/bin already."""
+    name = recipe["name"]
+    if not NAME_RE.match(name):
+        sys.exit(f"{name}: package names are 1-8 of a-z 0-9 _ -")
+    files = {}
+    for dst, src in recipe["files"].items():
+        top = dst.split("/")[0]
+        if top not in ("bin", "share") or (top == "share" and not dst.startswith(f"share/{name}/")):
+            sys.exit(f"{name}: {dst}: native packages hold bin/ and share/{name}/ only")
+        for c in dst.split("/"):
+            if not COMPONENT_RE.match(c):
+                sys.exit(f"{name}: {dst}: not an 8.3 name")
+        path = ROOT / src
+        if not path.is_file():
+            sys.exit(f"{name}: {src} is missing (build ManiOS first: make)")
+        files[dst] = path.read_bytes()
+    cmds = {d.split("/", 1)[1]: d for d in files if d.startswith("bin/")}
+    data = tar_of(files)
+    tar_name = f"pkgs/{name}-{version}.tar"
+    (out / tar_name).write_bytes(data)
+    return {
+        "name": name,
+        "version": version,
+        "kind": "native",
+        "file": tar_name,
+        "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "license": one_line(recipe["license"], 60),
+        "title": one_line(recipe["title"], 90),
+        "summary": one_line(recipe["summary"], 190),
+        "status": one_line(recipe.get("status", "Part of ManiOS; tested by its test suite"), 190),
+        "compat": None,
+        "cmds": cmds,
+        "env": [],
+        "requires": recipe.get("requires", []),
+        "source": f"https://github.com/manikineko/manios/tree/v{version}",
+        "origin": f"https://github.com/manikineko/manios/tree/v{version}",
+        "files": sorted(files, key=str.upper),
+    }
+
+
 def build(recipe, downloads, out, db, origin_base):
     name = recipe["name"]
     if not NAME_RE.match(name):
@@ -94,16 +154,7 @@ def build(recipe, downloads, out, db, origin_base):
             sys.exit(f"{name}: command {cmd}: 1-8 of a-z 0-9 _ -")
         if target.upper() not in {k.upper() for k in files}:
             sys.exit(f"{name}: command {cmd} runs {target}, which the package lacks")
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w", format=tarfile.USTAR_FORMAT) as t:
-        for rel in sorted(files, key=str.upper):
-            ti = tarfile.TarInfo(rel)
-            ti.size = len(files[rel])
-            ti.mtime = MTIME
-            ti.mode = 0o644
-            ti.uname = ti.gname = "manios"
-            t.addfile(ti, io.BytesIO(files[rel]))
-    data = buf.getvalue()
+    data = tar_of(files)
     stem = f"{name}-{re.sub(r'[^A-Za-z0-9._-]', '_', version)}"
     tar_name = f"pkgs/{stem}.tar"
     (out / tar_name).write_bytes(data)
@@ -131,6 +182,8 @@ def build(recipe, downloads, out, db, origin_base):
         "compat": recipe["compat"],
         "cmds": recipe["cmds"],
         "env": recipe.get("env", []),
+        # Every DOS program runs through ManiDOS's dosrun.
+        "requires": ["manidos"] + recipe.get("requires", []),
         "source": src_name,
         "origin": origin,
         "source_sha256": hashlib.sha256(spath.read_bytes()).hexdigest(),
@@ -139,8 +192,10 @@ def build(recipe, downloads, out, db, origin_base):
     }
 
 
-def index_text(pkgs):
+def index_text(pkgs, groups):
     lines = ["manios-repo 1"]
+    for g, members in groups.items():
+        lines.append(f"group {g} {' '.join(members)}")
     for p in pkgs:
         lines.append(f"pkg {p['name']}")
         for key in ("version", "kind", "file", "size", "sha256", "license", "title", "summary",
@@ -150,12 +205,14 @@ def index_text(pkgs):
             lines.append(f"cmd {cmd}={target}")
         for e in p["env"]:
             lines.append(e)
+        if p["requires"]:
+            lines.append(f"requires {' '.join(p['requires'])}")
         lines.append(f"source {p['source']}")
         lines.append("end")
     return "\n".join(lines) + "\n"
 
 
-def page(pkgs, public_key, version):
+def page(pkgs, public_key, version, groups):
     """The repository's web page (index.html), static: no script needed."""
     from html import escape as e
     rows = []
@@ -166,7 +223,8 @@ def page(pkgs, public_key, version):
             f'<span class="app-version">{e(p["version"])}</span></td>'
             f'<td>{e(p["title"])}<br><small>{e(p["summary"])}</small></td>'
             f"<td>{cmds}</td>"
-            f'<td><span class="pill green">Working</span> <small>{e(p["status"])}</small></td>'
+            f'<td><span class="pill green">{"ManiOS" if p["kind"] == "native" else "Working"}</span> '
+            f'<small>{e(p["status"])}</small></td>'
             f'<td class="evidence">{e(p["license"])}</td>'
             f'<td class="evidence"><a href="{e(p["file"])}">package</a> '
             f'({p["size"] // 1024} KiB)<br><a href="{e(p["source"])}">source</a></td></tr>')
@@ -216,7 +274,11 @@ def page(pkgs, public_key, version):
 pkg search archive    # look for something
 pkg install arj zoo   # install; the commands work at once
 pkg list -i           # what is installed
-pkg remove zoo</pre>
+pkg remove zoo
+pkg install @dos-tools   # a group of packages</pre>
+    <p>Groups: {"; ".join(f"<code>@{e(g)}</code> ({e(' '.join(m))})" for g, m in groups.items()) or "none yet"}.
+    DOS packages need <code>manidos</code>, ManiOS's DOS runtime; <code>pkg</code>
+    installs it with them unless the system has it built in.</p>
     <p>ManiOS has no TLS yet, so <code>pkg</code> fetches this repository over
     plain HTTP and trusts none of it by default: the package list must carry a
     valid Ed25519 signature by the ManiOS repository key, and every package must
@@ -261,24 +323,35 @@ def main():
     out = args.out
     for sub in ("pkgs", "src"):
         (out / sub).mkdir(parents=True, exist_ok=True)
-    pkgs = [build(r, args.downloads, out, db, recipes["origin_base"])
+    version = (ROOT / "VERSION").read_text().strip()
+    pkgs = [build_native(r, out, version) if r.get("kind") == "native"
+            else build(r, args.downloads, out, db, recipes["origin_base"])
             for r in sorted(recipes["packages"], key=lambda r: r["name"])]
-    text = index_text(pkgs).encode()
+    names = {p["name"] for p in pkgs}
+    for p in pkgs:
+        for q in p["requires"]:
+            if q not in names:
+                sys.exit(f"{p['name']} requires {q}, which is not in the repository")
+    groups = recipes.get("groups", {})
+    for g, members in groups.items():
+        if not re.match(r"^[a-z0-9][a-z0-9_-]{0,15}$", g) or not members or any(m not in names for m in members):
+            sys.exit(f"group {g}: needs a short name and packages that exist")
+    text = index_text(pkgs, groups).encode()
     if any(b > 127 for b in text):
         sys.exit("mkrepo: the index must be ASCII")
     key = nacl.signing.SigningKey(bytes.fromhex(args.key.read_text().strip()))
     sig = key.sign(text).signature
     (out / "index.txt").write_bytes(text)
     (out / "index.sig").write_text(sig.hex() + "\n")
-    version = (ROOT / "VERSION").read_text().strip()
     (out / "index.json").write_text(json.dumps({
         "repository": 1,
         "manios_min": "0.29.0",
         "built_with": version,
         "public_key": bytes(key.verify_key).hex(),
+        "groups": groups,
         "packages": pkgs,
     }, indent=1) + "\n")
-    (out / "index.html").write_text(page(pkgs, bytes(key.verify_key).hex(), version))
+    (out / "index.html").write_text(page(pkgs, bytes(key.verify_key).hex(), version, groups))
     # Every file the repository serves, for the website's SHA256SUMS.
     sums = []
     for f in sorted(p for p in out.rglob("*") if p.is_file() and p.name != "SHA256SUMS"):

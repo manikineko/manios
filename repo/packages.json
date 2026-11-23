@@ -1,5 +1,5 @@
 {
-  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. UnZip is Info-ZIP's own 16-bit DOS build (FreeDOS 1.4 ships the 32-bit DJGPP one, which needs DPMI), published with the Info-ZIP source archive.",
+  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Native packages (kind native) are built from this tree; every DOS package requires manidos. groups name sets of packages (pkg install @NAME). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. UnZip is Info-ZIP's own 16-bit DOS build (FreeDOS 1.4 ships the 32-bit DJGPP one, which needs DPMI), published with the Info-ZIP source archive.",
   "origin_base": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/",
   "packages": [
     {
@@ -398,6 +398,36 @@
       "env": [
         "env TZ=UTC0"
       ]
+    },
+    {
+      "name": "manidos",
+      "kind": "native",
+      "title": "ManiDOS: ManiOS's DOS runtime",
+      "summary": "dos, the ManiDOS command interpreter, and dosrun, which runs DOS programs. Every DOS package needs it; systems with ManiDOS built in have it already.",
+      "license": "BSD-2-Clause",
+      "files": {
+        "bin/dos": "build/bootfs/bin/dos",
+        "bin/dosrun": "build/bootfs/bin/dosrun"
+      }
     }
-  ]
+  ],
+  "groups": {
+    "dos-tools": [
+      "arj",
+      "attrib",
+      "deltree",
+      "du",
+      "fc",
+      "find",
+      "grep",
+      "gzip",
+      "head",
+      "more",
+      "tee",
+      "touch",
+      "unzip",
+      "xdel",
+      "zoo"
+    ]
+  }
 }

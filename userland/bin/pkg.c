@@ -1,12 +1,20 @@
-/* pkg -- install software from the ManiOS repository (0.29.0).
+/* pkg -- install software from the ManiOS repository (0.29.0; 0.30.0:
+ * dependencies and groups).
  *
  *   pkg update               fetch the repository index
  *   pkg list [-i]            what the repository has (-i: what is installed)
  *   pkg search WORD          packages whose name or description has WORD
  *   pkg info NAME            one package in detail
- *   pkg install NAME...      download, check and install
- *   pkg remove NAME...       uninstall
+ *   pkg install NAME...      download, check and install (@GROUP: a group)
+ *   pkg remove [-f] NAME...  uninstall (-f: even if others need it)
  *   pkg upgrade              install newer versions of installed packages
+ *
+ * Dependencies. A package's "requires" lines name packages it needs;
+ * install installs them first, and remove refuses to take away what an
+ * installed package needs. A native package whose commands all are in
+ * the boot archive (/boot/bin) is part of this system already: it counts
+ * as installed and is not downloaded (ManiDOS on a full system).
+ * "group NAME PKG..." lines between packages name sets of packages.
  *
  * Options, before the command: -r ROOT (where packages go; default the
  * first writable disk's /n/DISK/manios/pkg), -u URL (the repository;
@@ -37,6 +45,9 @@
 #define DEFAULT_URL "http://manios.nl/repo"
 #define INDEX_MAX (512 * 1024)
 #define CMDS_MAX 8
+#define REQS_MAX 4
+#define GROUP_MAX 32
+#define DEPTH_MAX 8
 
 /* The repository signing key (repo-signing/manios-repo-ed25519.pub). */
 static const char PUBLIC_KEY_HEX[] =
@@ -50,6 +61,14 @@ struct pkg {
 	char cmd[CMDS_MAX][9], target[CMDS_MAX][64];
 	int nenv;
 	char env[4][80]; /* launcher lines: "env NAME=VALUE" or "envpath NAME=DIR" */
+	int nreqs;
+	char req[REQS_MAX][9]; /* packages this one needs */
+};
+
+struct group {
+	char name[17];
+	int n;
+	char member[GROUP_MAX][9];
 };
 
 static const char *repo = DEFAULT_URL;
@@ -58,6 +77,8 @@ static int repo_given;
 static char root[128];
 static struct pkg *pkgs;
 static int npkgs;
+static struct group *groups;
+static int ngroups;
 
 static void die(const char *fmt, const char *a, const char *b)
 {
@@ -274,7 +295,10 @@ static void parse_index(char *text)
 	free(pkgs);
 	pkgs = 0;
 	npkgs = 0;
-	int cap = 0;
+	free(groups);
+	groups = 0;
+	ngroups = 0;
+	int cap = 0, gcap = 0;
 	struct pkg *cur = 0;
 	char *line = text;
 	if (strncmp(text, "manios-repo 1\n", 14) != 0) {
@@ -303,6 +327,29 @@ static void parse_index(char *text)
 			snprintf(cur->name, sizeof(cur->name), "%s", val);
 		} else if (cur && !strcmp(line, "end")) {
 			cur = 0;
+		} else if (!cur && !strcmp(line, "group")) {
+			/* group NAME PKG PKG ... */
+			if (ngroups == gcap) {
+				gcap = gcap ? gcap * 2 : 8;
+				groups = realloc(groups, (size_t)gcap * sizeof(*groups));
+				if (!groups) {
+					die("out of memory%s%s", 0, 0);
+				}
+			}
+			struct group *g = &groups[ngroups];
+			memset(g, 0, sizeof(*g));
+			char words[512];
+			snprintf(words, sizeof(words), "%s", val);
+			for (char *w = strtok(words, " "); w; w = strtok(0, " ")) {
+				if (!g->name[0]) {
+					snprintf(g->name, sizeof(g->name), "%s", w);
+				} else if (g->n < GROUP_MAX && strlen(w) <= 8) {
+					snprintf(g->member[g->n++], 9, "%s", w);
+				}
+			}
+			if (g->name[0] && g->n) {
+				ngroups++;
+			}
 		} else if (cur) {
 #define FIELD(key, dst) else if (!strcmp(line, key)) snprintf(dst, sizeof(dst), "%s", val)
 			if (0) {
@@ -320,6 +367,14 @@ static void parse_index(char *text)
 			} else if ((!strcmp(line, "env") || !strcmp(line, "envpath")) && cur->nenv < 4
 			           && strchr(val, '=') && !strstr(val, "..")) {
 				snprintf(cur->env[cur->nenv++], 80, "%s %s", line, val);
+			} else if (!strcmp(line, "requires")) {
+				char words[128];
+				snprintf(words, sizeof(words), "%s", val);
+				for (char *w = strtok(words, " "); w && cur->nreqs < REQS_MAX; w = strtok(0, " ")) {
+					if (strlen(w) <= 8) {
+						snprintf(cur->req[cur->nreqs++], 9, "%s", w);
+					}
+				}
 			} else if (!strcmp(line, "cmd") && cur->ncmds < CMDS_MAX) {
 				const char *eq = strchr(val, '=');
 				if (eq && eq - val <= 8) {
@@ -363,8 +418,9 @@ static void update(void)
 	free(index);
 }
 
-/* The saved index, checked again; fetched if there is none. */
-static void load_index(void)
+/* The saved index, if there is one and its signature holds: 1, else 0
+ * (-1: there is one, but its signature fails). */
+static int load_saved_index(void)
 {
 	char *index = malloc(INDEX_MAX + 1), sig[256], p[160];
 	if (!index) {
@@ -376,19 +432,29 @@ static void load_index(void)
 	long s = read_file(p, sig, sizeof(sig) - 1);
 	if (n <= 0 || s <= 0) {
 		free(index);
-		update();
-		return;
+		return 0;
 	}
 	sig[s] = 0;
 	if (!signature_ok(index, n, sig)) {
 		free(index);
-		fprintf(stderr, "pkg: the saved index fails its signature check; fetching it again\n");
-		update();
-		return;
+		return -1;
 	}
 	index[n] = 0;
 	parse_index(index);
 	free(index);
+	return 1;
+}
+
+/* The saved index, checked again; fetched if there is none. */
+static void load_index(void)
+{
+	int r = load_saved_index();
+	if (r < 0) {
+		fprintf(stderr, "pkg: the saved index fails its signature check; fetching it again\n");
+	}
+	if (r <= 0) {
+		update();
+	}
 }
 
 static struct pkg *find(const char *name)
@@ -416,6 +482,33 @@ static void installed_version(const char *name, char *out, size_t n)
 			snprintf(out, n, "%s", sp + 1);
 		}
 	}
+}
+
+/* A native package whose commands all are in the boot archive is part
+ * of this system: nothing to download (ManiDOS on a full system). */
+static int built_in(const struct pkg *k)
+{
+	if (strcmp(k->kind, "native") || !k->ncmds) {
+		return 0;
+	}
+	for (int i = 0; i < k->ncmds; i++) {
+		char p[32];
+		snprintf(p, sizeof(p), "/boot/bin/%s", k->cmd[i]);
+		if (type_of(p) != ZKT_TYPE_FILE) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static struct group *find_group(const char *name)
+{
+	for (int i = 0; i < ngroups; i++) {
+		if (!strcmp(groups[i].name, name)) {
+			return &groups[i];
+		}
+	}
+	return 0;
 }
 
 /* --- installing --- */
@@ -657,17 +750,63 @@ static void bind_bin(void)
 
 static void remove_files(const char *name, int quiet);
 
+static int install_at(const char *name, int depth, int quiet);
+
 static int install(const char *name)
+{
+	return install_at(name, 0, 0);
+}
+
+/* Installs what K needs that is not there yet. */
+static int install_requirements(const struct pkg *k, int depth)
+{
+	for (int i = 0; i < k->nreqs; i++) {
+		struct pkg *r = find(k->req[i]);
+		char have[32];
+		if (!r) {
+			fprintf(stderr, "pkg: %s needs %s, which the repository does not have\n",
+			        k->name, k->req[i]);
+			return 1;
+		}
+		installed_version(r->name, have, sizeof(have));
+		if (have[0] || built_in(r)) {
+			continue;
+		}
+		printf("pkg: %s needs %s\n", k->name, r->name);
+		if (install_at(r->name, depth + 1, 1)) {
+			fprintf(stderr, "pkg: %s: could not install %s, which it needs\n", k->name, r->name);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int install_at(const char *name, int depth, int quiet)
 {
 	struct pkg *k = find(name);
 	if (!k) {
 		fprintf(stderr, "pkg: no package %s (pkg search, or pkg update)\n", name);
 		return 1;
 	}
+	if (depth > DEPTH_MAX) {
+		fprintf(stderr, "pkg: %s: its requirements go round in a circle\n", name);
+		return 1;
+	}
+	if (built_in(k)) {
+		if (!quiet) {
+			printf("pkg: %s is part of this system already (/boot/bin)\n", name);
+		}
+		return 0;
+	}
+	if (install_requirements(k, depth)) {
+		return 1;
+	}
 	char have[32];
 	installed_version(name, have, sizeof(have));
 	if (have[0] && !strcmp(have, k->version)) {
-		printf("pkg: %s %s is already installed\n", name, have);
+		if (!quiet) {
+			printf("pkg: %s %s is already installed\n", name, have);
+		}
 		return 0;
 	}
 	if (strcmp(k->kind, "dos") && strcmp(k->kind, "native")) {
@@ -857,7 +996,7 @@ static void show(const struct pkg *k, int long_form)
 	char have[32];
 	installed_version(k->name, have, sizeof(have));
 	printf("%-8s %-12s %-6s %s%s\n", k->name, k->version, k->kind, k->title,
-	       have[0] ? " [installed]" : "");
+	       have[0] ? " [installed]" : built_in(k) ? " [built in]" : "");
 	if (long_form) {
 		printf("  %s\n  License: %s\n  Size: %ld bytes\n", k->summary, k->license, k->size);
 		if (k->status[0]) {
@@ -865,6 +1004,12 @@ static void show(const struct pkg *k, int long_form)
 		}
 		if (!strcmp(k->kind, "dos")) {
 			printf("  Runs through dosrun (a DOS program)\n");
+		}
+		for (int i = 0; i < k->nreqs; i++) {
+			printf("  Needs: %s\n", k->req[i]);
+		}
+		if (built_in(k)) {
+			printf("  Part of this system (in /boot/bin)\n");
 		}
 		for (int i = 0; i < k->ncmds; i++) {
 			printf("  Command: %s\n", k->cmd[i]);
@@ -896,7 +1041,7 @@ static int ci_contains(const char *hay, const char *needle)
 static void usage(void)
 {
 	fprintf(stderr, "usage: pkg [-r ROOT] [-u URL] update | list [-i] | search WORD | "
-	                "info NAME | install NAME... | remove NAME... | upgrade\n");
+	                "info NAME | install NAME|@GROUP... | remove [-f] NAME... | upgrade\n");
 	exit(2);
 }
 
@@ -938,25 +1083,58 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	if (!strcmp(cmd, "remove")) {
+		int force = i < argc && !strcmp(argv[i], "-f");
+		i += force;
 		if (i >= argc) {
 			usage();
 		}
-		for (; i < argc; i++) {
+		load_saved_index(); /* for what needs what; without one, no check */
+		int failed = 0;
+		for (int a = i; a < argc; a++) {
 			char have[32];
-			installed_version(argv[i], have, sizeof(have));
+			installed_version(argv[a], have, sizeof(have));
 			if (!have[0]) {
-				fprintf(stderr, "pkg: %s is not installed\n", argv[i]);
+				fprintf(stderr, "pkg: %s is not installed\n", argv[a]);
+				failed = 1;
 				continue;
 			}
-			remove_files(argv[i], 0);
-			printf("pkg: removed %s %s\n", argv[i], have);
+			/* Installed packages that need it, and are not being removed too. */
+			int needed = 0;
+			for (int k = 0; k < npkgs && !force; k++) {
+				char v[32];
+				int going = 0;
+				for (int b = i; b < argc; b++) {
+					going |= !strcmp(argv[b], pkgs[k].name);
+				}
+				installed_version(pkgs[k].name, v, sizeof(v));
+				for (int q = 0; v[0] && !going && q < pkgs[k].nreqs; q++) {
+					if (!strcmp(pkgs[k].req[q], argv[a])) {
+						fprintf(stderr, "pkg: %s needs %s: not removing it (-f to remove anyway)\n",
+						        pkgs[k].name, argv[a]);
+						needed = 1;
+					}
+				}
+			}
+			if (needed) {
+				failed = 1;
+				continue;
+			}
+			remove_files(argv[a], 0);
+			printf("pkg: removed %s %s\n", argv[a], have);
 		}
-		return 0;
+		return failed;
 	}
 	load_index();
 	if (!strcmp(cmd, "list")) {
 		for (int k = 0; k < npkgs; k++) {
 			show(&pkgs[k], 0);
+		}
+		for (int g = 0; g < ngroups; g++) {
+			printf("%s@%s:", g ? "" : "groups (pkg install @NAME):\n", groups[g].name);
+			for (int m = 0; m < groups[g].n; m++) {
+				printf(" %s", groups[g].member[m]);
+			}
+			printf("\n");
 		}
 		return 0;
 	}
@@ -995,7 +1173,19 @@ int main(int argc, char **argv)
 		}
 		int failed = 0;
 		for (; i < argc; i++) {
-			failed |= install(argv[i]);
+			if (argv[i][0] != '@') {
+				failed |= install(argv[i]);
+				continue;
+			}
+			struct group *g = find_group(argv[i] + 1);
+			if (!g) {
+				fprintf(stderr, "pkg: no group %s (pkg list shows the groups)\n", argv[i] + 1);
+				failed = 1;
+				continue;
+			}
+			for (int m = 0; m < g->n; m++) {
+				failed |= install(g->member[m]);
+			}
 		}
 		return failed;
 	}

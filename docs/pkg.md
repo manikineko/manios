@@ -19,8 +19,10 @@ pkg list                everything in the repository
 pkg list -i             what is installed
 pkg search WORD         by name, title or description
 pkg info NAME           details: licence, size, command, ManiOS test result
-pkg install NAME...     download, check and install
-pkg remove NAME...      uninstall
+pkg install NAME...     download, check and install (and what they need)
+pkg install @GROUP      a group of packages, such as @dos-tools
+pkg remove NAME...      uninstall (not what an installed package needs)
+pkg remove -f NAME...   uninstall even so
 pkg upgrade             install newer versions of what is installed
 pkg -u URL update       use another repository (remembered for later commands)
 ```
@@ -29,6 +31,22 @@ An installed program's command works at once, and after a reboot too: the
 kernel adds the first `/n/DISK/manios/pkg/bin` it finds after `/bin`. A
 DOS package's command that would hide a built-in program gets a `d`
 prefix (`dgrep`, `dhead`, `dtee`, `dsleep`).
+
+### Dependencies and groups (0.30.0)
+
+A package can need others (`requires` in the index); `pkg install`
+installs them first and says so (`pkg: arj needs manidos`), and
+`pkg remove` will not take away a package another installed package
+needs. Every DOS package needs **`manidos`**, ManiOS's DOS runtime (`dos`
+and `dosrun`). A native package whose commands are all in the boot archive
+(`/boot/bin`) is part of the system already: on a system with ManiDOS
+built in, `pkg` never downloads `manidos` (`pkg info manidos` says
+*Part of this system*). Systems installed without ManiDOS (the server
+profile of the 0.30 installer, [ADR-0011](adr/0011-debian-style-installer.md))
+get it with their first DOS package.
+
+Groups are sets of packages: `pkg list` shows them, and `pkg install
+@dos-tools` installs the DOS tools in one go.
 
 `hget URL [FILE]` fetches any `http://` URL with the same HTTP client.
 
@@ -99,14 +117,18 @@ license ...
 title ...
 summary ...
 status  the ManiOS test result
-cmd COMMAND=FILE        (DOS: a launcher for FILE in the package)
+cmd COMMAND=FILE        (DOS: a launcher for FILE in the package;
+                         native: bin/COMMAND, its own command)
+requires PKG...         packages this one needs (0.30.0)
 env NAME=VALUE          (DOS launchers)
 envpath NAME=DIR        (DOS launchers; DIR inside the package)
 source src/NAME-VERSION.zip   (or .tar.gz)
 end
 ```
 
-Unknown keys are ignored, so later versions can add fields. Packages are
+Between packages, `group NAME PKG...` lines name groups (0.30.0).
+Unknown keys and lines are ignored, so later versions can add fields:
+0.29 `pkg` reads a 0.30 index and simply installs no dependencies. Packages are
 ustar archives. Each DOS package's unmodified upstream package (which
 includes its source code) is published beside it under `src/`; where the
 upstream package carries only binaries (Info-ZIP UnZip), its upstream
@@ -115,7 +137,11 @@ source archive is published instead.
 ## Building and publishing the repository
 
 Recipes are in [`repo/packages.json`](../repo/packages.json): which files
-of which upstream package, which commands, any environment. Then
+of which upstream package, which commands, any environment, and the
+groups. A recipe with `"kind": "native"` is built from this tree's build
+output (`make` first): ManiOS components such as `manidos`, versioned as
+`VERSION`. `mkrepo.py` adds `requires manidos` to every DOS package and
+checks that every requirement and group member exists. Then
 
 ```sh
 python3 tools/mkrepo.py --downloads DIR_WITH_UPSTREAM_ZIPS \

@@ -1,11 +1,10 @@
 # ManiOS
 
-Current development version: **0.29.1** -- FIND and UnZip in the
-package repository, and a DOS drive-selection fix
-([notes](docs/releases/0.29.1.md)).
-Latest release: [0.29.0](docs/releases/0.29.0.md) -- TCP/IP, the `pkg`
-package manager and the package repository at http://manios.nl/repo
-([guide](docs/pkg.md)).
+Current development version: **0.30.0** -- a Debian-style installer
+with profiles, and package dependencies ([notes](docs/releases/0.30.0.md),
+[plan](docs/adr/0011-debian-style-installer.md)).
+Latest release: [0.29.1](docs/releases/0.29.1.md) -- the `pkg` package
+manager and the repository at http://manios.nl/repo ([guide](docs/pkg.md)).
 
 An independent operating system with **ZKT (ZygKernel Technology)** at
 its core, BSD technology adopted where it legally and technically earns
