@@ -1,4 +1,4 @@
-# Packages: `pkg` and the repository (0.29.0)
+# Packages: `pkg` and the repository (0.29.0 and later)
 
 ManiOS 0.29.0 installs software from the ManiOS package repository at
 <http://manios.nl/repo/>. The repository holds DOS programs (run through
@@ -102,13 +102,15 @@ status  the ManiOS test result
 cmd COMMAND=FILE        (DOS: a launcher for FILE in the package)
 env NAME=VALUE          (DOS launchers)
 envpath NAME=DIR        (DOS launchers; DIR inside the package)
-source src/NAME-VERSION.zip
+source src/NAME-VERSION.zip   (or .tar.gz)
 end
 ```
 
 Unknown keys are ignored, so later versions can add fields. Packages are
 ustar archives. Each DOS package's unmodified upstream package (which
-includes its source code) is published beside it under `src/`.
+includes its source code) is published beside it under `src/`; where the
+upstream package carries only binaries (Info-ZIP UnZip), its upstream
+source archive is published instead.
 
 ## Building and publishing the repository
 

@@ -1893,12 +1893,13 @@ static enum cpu_stop dos21(struct dos_state *d, struct cpu *c)
 	case 0x0D: /* disk reset: nothing to do */
 		return CPU_OK;
 
-	case 0x0E: /* select the default drive: AL = 0 for A:, ... */
-		if (dos_set_drive((int)((uint8_t)(c->r[AX] & 0xFF))) < 0) {
-			c->r[AX] = 0x000F; /* invalid drive */
-			return CPU_OK;
-		}
-		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | 0x1F); /* 32 drives */
+	case 0x0E: /* select the default drive: DL = 0 for A:, 2 for C:, ... */
+		/* As DOS: an unmounted drive leaves the current one selected,
+		 * and AL is the number of drive letters either way. Before
+		 * 0.29.0 the drive came from AL (always 0 here), which sent
+		 * programs such as FreeDOS FIND to A:. */
+		(void)dos_set_drive((int)(uint8_t)c->r[DX]);
+		c->r[AX] = (uint16_t)((c->r[AX] & 0xFF00) | 26); /* A: to Z: */
 		return CPU_OK;
 
 	case 0x0F: case 0x10: case 0x14: case 0x15: case 0x16: case 0x17:

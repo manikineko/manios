@@ -1,5 +1,5 @@
 {
-  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. Left out for now: find (FreeDOS FIND looks for relative names on A:, which a launcher cannot arrange) and unzip (the FreeDOS 1.4 package is the 32-bit DJGPP build, which needs DPMI).",
+  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. UnZip is Info-ZIP's own 16-bit DOS build (FreeDOS 1.4 ships the 32-bit DJGPP one, which needs DPMI), published with the Info-ZIP source archive.",
   "origin_base": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/",
   "packages": [
     {
@@ -349,6 +349,55 @@
       "cmds": {
         "zoo": "ZOO.EXE"
       }
+    },
+    {
+      "name": "find",
+      "zip": "find.zip",
+      "origin": "base/find.zip",
+      "compat": "freedos-find",
+      "files": {
+        "BIN/": "",
+        "NLS/": "NLS/",
+        "DOC/FIND/": "DOC/"
+      },
+      "cmds": {
+        "find": "FIND.COM"
+      },
+      "env": [
+        "env LANG=EN",
+        "envpath NLSPATH=NLS"
+      ],
+      "title": "FreeDOS FIND",
+      "summary": "Search for text in files (FIND 3.0b). Needs ManiOS 0.29.1 or later."
+    },
+    {
+      "name": "unzip",
+      "zip": "infozip/unz600x3.exe",
+      "source": "infozip/unzip60.tar.gz",
+      "origin": "https://web.archive.org/web/2019/ftp://ftp.info-zip.org/pub/infozip/msdos/unz600x3.exe",
+      "source_origin": "https://web.archive.org/web/2019/ftp://ftp.info-zip.org/pub/infozip/src/unzip60.tgz",
+      "compat": "info-zip-unzip",
+      "version": "6.00",
+      "license": "Info-ZIP License (BSD-like)",
+      "title": "Info-ZIP UnZip",
+      "summary": "List, test and extract .zip archives (Info-ZIP UnZip 6.00, 16-bit DOS build), with funzip for a zip's first member on standard output.",
+      "files": {
+        "unzip.exe": "UNZIP.EXE",
+        "funzip.exe": "FUNZIP.EXE",
+        "LICENSE": "LICENSE",
+        "README": "README",
+        "README.DOS": "README.DOS",
+        "unzip.txt": "UNZIP.TXT",
+        "funzip.txt": "FUNZIP.TXT",
+        "zipinfo.txt": "ZIPINFO.TXT"
+      },
+      "cmds": {
+        "unzip": "UNZIP.EXE",
+        "funzip": "FUNZIP.EXE"
+      },
+      "env": [
+        "env TZ=UTC0"
+      ]
     }
   ]
 }

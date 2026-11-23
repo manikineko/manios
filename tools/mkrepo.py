@@ -7,7 +7,8 @@ For each recipe in repo/packages.json this takes the named files from an
 unmodified upstream package zip (found in --downloads), checks every path
 is 8.3 (ManiOS writes FAT 8.3 names), and writes a reproducible ustar
 archive OUT/pkgs/NAME-VERSION.tar. The upstream zip is copied to
-OUT/src/ as the corresponding source. Version, licence and description
+OUT/src/ as the corresponding source (or the separate source archive a
+recipe names in "source"; a self-extracting .exe zip works as "zip"). Version, licence and description
 come from the package's APPINFO/*.LSM; the ManiOS status line comes from
 docs/compatibility/database.json, and only Working programs are accepted.
 
@@ -106,10 +107,15 @@ def build(recipe, downloads, out, db, origin_base):
     stem = f"{name}-{re.sub(r'[^A-Za-z0-9._-]', '_', version)}"
     tar_name = f"pkgs/{stem}.tar"
     (out / tar_name).write_bytes(data)
-    src_name = f"src/{stem}.zip"
-    shutil.copyfile(zpath, out / src_name)
+    # The published source: the upstream package itself, or (for programs
+    # whose package carries only binaries, such as Info-ZIP's self-extracting
+    # DOS build) the separate upstream source archive the recipe names.
+    spath = downloads / recipe.get("source", recipe["zip"])
+    suffix = ".tar.gz" if spath.name.endswith(".tar.gz") else ".zip"
+    src_name = f"src/{stem}{suffix}"
+    shutil.copyfile(spath, out / src_name)
     origin = recipe["origin"]
-    if not origin.startswith("FreeDOS"):
+    if not origin.startswith(("FreeDOS", "http://", "https://")):
         origin = origin_base + origin
     return {
         "name": name,
@@ -127,7 +133,8 @@ def build(recipe, downloads, out, db, origin_base):
         "env": recipe.get("env", []),
         "source": src_name,
         "origin": origin,
-        "source_sha256": hashlib.sha256(zpath.read_bytes()).hexdigest(),
+        "source_sha256": hashlib.sha256(spath.read_bytes()).hexdigest(),
+        "source_origin": recipe.get("source_origin", origin),
         "files": sorted(files, key=str.upper),
     }
 

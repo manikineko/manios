@@ -624,14 +624,14 @@
     {
       "id": "freedos-find",
       "name": "FreeDOS FIND",
-      "version": "01Nov2003, FreeDOS package (GPL-2)",
+      "version": "3.0bLFN, FreeDOS 1.4 package (GPL-2)",
       "status": "Working",
       "kind": "utility",
-      "summary": "With the test disk mounted as A: (FIND selects A: before opening relative paths), exact, case-insensitive and inverted searches return the expected lines; a missing file reports `No such file`.",
+      "summary": "From its pkg package on drive C: (0.29.1), exact, case-insensitive and inverted searches by absolute and relative path return the expected lines.",
       "anchor": "freedos-find-01nov2003",
-      "evidence": "2026-11-22-028-working-retest.json",
-      "last_tested": "2026-11-22",
-      "previous_evidence": "2026-10-24-wave2-fixup.txt"
+      "evidence": "2026-11-23-0291-pkg-e2e.json",
+      "last_tested": "2026-11-23",
+      "previous_evidence": "2026-11-22-028-working-retest.json"
     },
     {
       "id": "freedos-attrib",

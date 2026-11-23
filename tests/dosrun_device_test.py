@@ -166,6 +166,14 @@ int main(int argc,char **argv) {
  /* Every BIOS/DOS vector points somewhere; a far call through an unset
   * one (INT 2Fh here) reaches dosrun's service and returns. */
  CHECK(rd16(&c,0,0x2F*4+2)==0xF000 && rd16(&c,0,0x60*4+2)==0);
+ /* AH=0Eh selects the drive in DL (not AL), and AL is the drive count;
+  * an unmounted drive leaves the selection alone. */
+ dos_mount('C',"/tmp"); dos_mount('Z',"/");
+ c.r[AX]=0x0E00; c.r[DX]=2; dispatch(0x21); CHECK((c.r[AX]&255)==26);
+ c.r[AX]=0x1900; dispatch(0x21); CHECK((c.r[AX]&255)==2);
+ c.r[AX]=0x0E00; c.r[DX]=25; dispatch(0x21); c.r[AX]=0x1900; dispatch(0x21); CHECK((c.r[AX]&255)==25);
+ c.r[AX]=0x0E00; c.r[DX]=10; dispatch(0x21); CHECK((c.r[AX]&255)==26);
+ c.r[AX]=0x1900; dispatch(0x21); CHECK((c.r[AX]&255)==25);
  char root[]="/tmp/dosrun-device-XXXXXX"; CHECK(mkdtemp(root));
  char sub[64]; snprintf(sub,sizeof(sub),"%s/work",root); mkdir(sub,0700);
  /* dos_path lowercases whole host paths, so mount the (mixed-case)
