@@ -146,9 +146,10 @@ of which upstream package, which commands, any environment, and the
 groups. A recipe with `"kind": "native"` is built from this tree's build
 output (`make` first): ManiOS components such as `manidos`, versioned as
 `VERSION`. `mkrepo.py` adds `requires manidos` to every DOS package and
-checks that every requirement and group member exists. Native programs of
-their own (such as `edit`) live in `apps/NAME/` and build to
-`build/apps/bin/NAME`, outside the system. Then
+checks that every requirement and group member exists. Programs of their
+own (edit, games) live in the separate `manios-apps` repository, with
+its own `packages.json`: `mkrepo.py --recipes repo/packages.json --recipes
+../manios-apps/packages.json ...` makes one repository of both. Then
 
 ```sh
 python3 tools/mkrepo.py --downloads DIR_WITH_UPSTREAM_ZIPS \

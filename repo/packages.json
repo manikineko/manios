@@ -1,5 +1,5 @@
 {
-  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Native packages (kind native) are built from this tree; every DOS package requires manidos. groups name sets of packages (pkg install @NAME). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. UnZip is Info-ZIP's own 16-bit DOS build (FreeDOS 1.4 ships the 32-bit DJGPP one, which needs DPMI), published with the Info-ZIP source archive.",
+  "comment": "Recipes for the ManiOS package repository (tools/mkrepo.py). Native packages (kind native) are built from this tree; every DOS package requires manidos. groups name sets of packages (pkg install @NAME). Each DOS package is built from an unmodified FreeDOS package zip; the zip itself is published beside it as the corresponding source. Only programs that are Working in docs/compatibility/database.json and whose licence allows redistribution are listed. Commands that would clash with a built-in /bin program get a 'd' prefix. UnZip is Info-ZIP's own 16-bit DOS build (FreeDOS 1.4 ships the 32-bit DJGPP one, which needs DPMI), published with the Info-ZIP source archive. Programs of their own (edit, games) are in the separate manios-apps repository, with its own packages.json.",
   "origin_base": "https://ftp.icm.edu.pl/pub/msdos/freedos/repositories/1.4/",
   "packages": [
     {
@@ -432,18 +432,6 @@
         "bin/welcome": "build/bootfs/bin/welcome",
         "bin/widgets": "build/bootfs/bin/widgets"
       }
-    },
-    {
-      "name": "edit",
-      "kind": "native",
-      "title": "edit: a text editor",
-      "summary": "A full-screen text editor for the console and ManiDE's terminal: arrows, ^O save, ^X exit, ^W find, ^L go to line, ^K/^U cut and paste lines. Keeps DOS (CR LF) line ends.",
-      "license": "BSD-2-Clause",
-      "status": "Tested on ManiOS 0.30.1: typing, saving, DOS line ends, cut and paste, find, the PS/2 keyboard and ManiDE's terminal (tests/edit_test.py)",
-      "files": {
-        "bin/edit": "build/apps/bin/edit"
-      },
-      "minos": "0.30.1"
     }
   ],
   "groups": {

@@ -135,17 +135,15 @@ BASE_BOOTAREA := $(BASE)/manios-base.bin
 # CD_REPO=DIR (tools/mkrepo.py --cd DIR) puts the signed package
 # repository on the ISO as REPO, for installing without a network.
 CD_REPO ?=
-# Programs for the package repository (0.30): apps/NAME/*.c makes
-# build/apps/bin/NAME, stripped, not in the boot archive;
-# repo/packages.json packages them ("kind": "native").
-APPS := $(notdir $(wildcard apps/*))
-APP_BINS := $(patsubst %,$(BUILD)/apps/bin/%,$(APPS))
+# Programs for the package repository that are not part of the system
+# (edit, games) live in the separate manios-apps repository, built
+# against this tree.
 
 .PHONY: all toolchain run test clean iso release test-images
 # A recipe that fails leaves no half-made file behind for make to trust.
 .DELETE_ON_ERROR:
 
-all: $(KERNEL) $(ISO) $(APP_BINS)
+all: $(KERNEL) $(ISO)
 
 toolchain:
 	tools/toolchain/build-i686-elf-toolchain.sh
@@ -243,21 +241,6 @@ $(BUILD)/bootfs/autoexec.bat: userland/dos/autoexec.bat
 $(DESKTOP_BOOTFS): $(BUILD)/bootfs/bin/%: $(BUILD)/desktop/apps/%.elf
 	@mkdir -p $(dir $@)
 	$(STRIP) -o $@ $<
-
-$(BUILD)/apps/%.o: apps/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(USER_CFLAGS) -c $< -o $@
-
-define APP_RULE
-$(BUILD)/apps/$(1).elf: $(patsubst %.c,$(BUILD)/%.o,$(wildcard apps/$(1)/*.c)) \
-                        $(CRT0) $(USER_LIBS) userland/user.ld
-	$$(CC) $$(USER_LDFLAGS) -o $$@ $$(CRT0) $(patsubst %.c,$(BUILD)/%.o,$(wildcard apps/$(1)/*.c)) \
-	    $$(USER_LIBS)
-$(BUILD)/apps/bin/$(1): $(BUILD)/apps/$(1).elf
-	@mkdir -p $$(dir $$@)
-	$$(STRIP) -o $$@ $$<
-endef
-$(foreach a,$(APPS),$(eval $(call APP_RULE,$(a))))
 
 $(BUILD)/userland/%.o: userland/%.c
 	@mkdir -p $(dir $@)
@@ -413,7 +396,7 @@ release: $(ISO) $(KERNEL)
 run: $(KERNEL)
 	tools/qemu-run.sh $(KERNEL)
 
-test: $(KERNEL) test-images $(APP_BINS)
+test: $(KERNEL) test-images
 	python3 tools/mkfont.py --check
 	tests/boot_smoke_test.sh $(KERNEL)
 	python3 tests/install_test.py $(BUILD)
@@ -426,7 +409,6 @@ test: $(KERNEL) test-images $(APP_BINS)
 	python3 tests/gfx_test.py $(KERNEL)
 	python3 tests/vbe_test.py $(KERNEL)
 	python3 tests/desktop_test.py $(KERNEL)
-	python3 tests/edit_test.py $(KERNEL)
 	python3 tests/gui_frame_test.py
 	python3 tests/gui_test.py $(KERNEL)
 	python3 tests/dos_test.py $(KERNEL)

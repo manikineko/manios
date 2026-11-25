@@ -1,7 +1,8 @@
 # ManiOS
 
-Current development version: **0.30.1** -- `edit`, a text editor in the
-package repository, and raw keys for programs ([notes](docs/releases/0.30.1.md)).
+Current development version: **0.30.1** -- raw keys for programs, and
+the first apps (edit, snake, mines) from the separate manios-apps
+repository ([notes](docs/releases/0.30.1.md)).
 Latest release: [0.30.0](docs/releases/0.30.0.md) -- a Debian-style installer
 with profiles; ManiDE and ManiDOS as packages ([install](docs/install.md)).
 

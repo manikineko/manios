@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """Build the ManiOS package repository (served at http://manios.nl/repo).
 
-Usage: tools/mkrepo.py --downloads DIR --key KEYFILE --out DIR [--recipes repo/packages.json]
+Usage: tools/mkrepo.py --downloads DIR --key KEYFILE --out DIR
+                       [--recipes repo/packages.json] [--recipes ../manios-apps/packages.json]...
+
+Several --recipes files make one repository: this tree's own (the
+FreeDOS packages, manidos, manide) and those of separate repositories of
+programs, such as manios-apps. A recipe file's "root" (relative to the
+file) is where its native packages' files are, and its "source" the URL
+of its source code ("{version}" is replaced), or a path under the
+repository with "source_file" (relative to the file) published there; a
+recipe file's or a recipe's own "version" wins over ManiOS's VERSION.
 
 For each recipe in repo/packages.json this takes the named files from an
 unmodified upstream package zip (found in --downloads), checks every path
@@ -73,7 +82,7 @@ def tar_of(files):
     return buf.getvalue()
 
 
-def build_native(recipe, out, version):
+def build_native(recipe, out, version, root=None, source=None):
     """A native package from this tree's build (ManiOS components such as
     ManiDOS): "files" maps a path in the package (bin/NAME or
     share/PKG/...) to a file under the repository root. Its commands are
@@ -82,6 +91,7 @@ def build_native(recipe, out, version):
     name = recipe["name"]
     if not NAME_RE.match(name):
         sys.exit(f"{name}: package names are 1-8 of a-z 0-9 _ -")
+    version = recipe.get("version", version)
     files = {}
     for dst, src in recipe["files"].items():
         top = dst.split("/")[0]
@@ -90,9 +100,9 @@ def build_native(recipe, out, version):
         for c in dst.split("/"):
             if not COMPONENT_RE.match(c):
                 sys.exit(f"{name}: {dst}: not an 8.3 name")
-        path = ROOT / src
+        path = (root or ROOT) / src
         if not path.is_file():
-            sys.exit(f"{name}: {src} is missing (build ManiOS first: make)")
+            sys.exit(f"{name}: {path} is missing (build it first: make)")
         files[dst] = path.read_bytes()
     cmds = {d.split("/", 1)[1]: d for d in files if d.startswith("bin/")}
     data = tar_of(files)
@@ -114,8 +124,8 @@ def build_native(recipe, out, version):
         "env": [],
         "requires": recipe.get("requires", []),
         "minos": recipe.get("minos", ""),
-        "source": f"https://github.com/manikineko/manios/tree/v{version}",
-        "origin": f"https://github.com/manikineko/manios/tree/v{version}",
+        "source": (source or "https://github.com/manikineko/manios/tree/v{version}").format(version=version),
+        "origin": (source or "https://github.com/manikineko/manios/tree/v{version}").format(version=version),
         "files": sorted(files, key=str.upper),
     }
 
@@ -335,7 +345,7 @@ def write_cd(cd, out, pkgs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--recipes", default=ROOT / "repo/packages.json", type=Path)
+    ap.add_argument("--recipes", action="append", type=Path)
     ap.add_argument("--downloads", required=True, type=Path)
     ap.add_argument("--key", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
@@ -345,22 +355,45 @@ def main():
         import nacl.signing
     except ImportError:
         sys.exit("mkrepo: needs PyNaCl (python3-nacl)")
-    recipes = json.loads(args.recipes.read_text())
+    files = args.recipes or [ROOT / "repo/packages.json"]
+    recipe_sets = []
+    for f in files:
+        rs = json.loads(f.read_text())
+        root = (f.parent / rs["root"]).resolve() if "root" in rs else ROOT
+        recipe_sets.append((rs, root))
     db = {a["id"]: a for a in json.loads(
         (ROOT / "docs/compatibility/database.json").read_text())["apps"]}
     out = args.out
     for sub in ("pkgs", "src"):
         (out / sub).mkdir(parents=True, exist_ok=True)
     version = (ROOT / "VERSION").read_text().strip()
-    pkgs = [build_native(r, out, version) if r.get("kind") == "native"
-            else build(r, args.downloads, out, db, recipes["origin_base"])
-            for r in sorted(recipes["packages"], key=lambda r: r["name"])]
+    pkgs, groups = [], {}
+    for rs, root in recipe_sets:
+        set_version = rs.get("version", version)
+        if rs.get("source_file"):
+            sf = root / rs["source_file"].format(version=set_version)
+            if not sf.is_file():
+                sys.exit(f"mkrepo: {sf} is missing (make dist)")
+            dest = out / rs["source"].format(version=set_version)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(sf, dest)
+        for r in rs["packages"]:
+            if r.get("kind") == "native":
+                pkgs.append(build_native(r, out, set_version, root, rs.get("source")))
+            else:
+                pkgs.append(build(r, args.downloads, out, db, rs["origin_base"]))
+        for g, members in rs.get("groups", {}).items():
+            if g in groups:
+                sys.exit(f"group {g} is in two recipe files")
+            groups[g] = members
+    pkgs.sort(key=lambda p: p["name"])
     names = {p["name"] for p in pkgs}
+    if len(names) != len(pkgs):
+        sys.exit("mkrepo: a package name is in two recipe files")
     for p in pkgs:
         for q in p["requires"]:
             if q not in names:
                 sys.exit(f"{p['name']} requires {q}, which is not in the repository")
-    groups = recipes.get("groups", {})
     for g, members in groups.items():
         if not re.match(r"^[a-z0-9][a-z0-9_-]{0,15}$", g) or not members or any(m not in names for m in members):
             sys.exit(f"group {g}: needs a short name and packages that exist")
