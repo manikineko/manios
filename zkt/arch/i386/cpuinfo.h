@@ -10,4 +10,7 @@
  * model, else "486" or "386" for CPUs without CPUID. */
 void cpu_describe(char *buf, size_t size);
 
+/* The TSC's low 32 bits, or 0 without one (random.c's mixing). */
+uint32_t cpu_cycles_low(void);
+
 #endif

@@ -1,8 +1,9 @@
 # ManiOS
 
-Current development version: **0.30.1** -- raw keys for programs, and
-the first apps (edit, snake, mines) from the separate manios-apps
-repository ([notes](docs/releases/0.30.1.md)).
+Current development version: **0.31.0** -- servers: programs listen for
+TCP connections, /dev/random, background jobs, kill and ^C; sshd, httpd,
+telnetd, ircd and ftpd in the package repository
+([notes](docs/releases/0.31.0.md), [guide](docs/servers.md)).
 Latest release: [0.30.0](docs/releases/0.30.0.md) -- a Debian-style installer
 with profiles; ManiDE and ManiDOS as packages ([install](docs/install.md)).
 
@@ -53,6 +54,7 @@ limitations. The machine-readable index is
 | M21 — `gfx=auto`: a real display adapter's own linear framebuffer, over its VESA BIOS, for ManiDE on real hardware | Achieved ([notes](docs/milestones/M21-vesa-lfb.md)) |
 | M22 — writing to a FAT volume: the kernel's FAT writer and the syscalls for creating, removing and renaming files; ManiDOS's `DEL`, `MD`, `RD`, `REN`, `COPY` onto a file and `> FILE` | Achieved ([notes](docs/milestones/M22-fat-writes.md), [guide](docs/dos.md)) |
 | M23 — graphical software: libui, a widget toolkit; a file browser, viewer, calculator and sketchpad built with it | Achieved ([notes](docs/milestones/M23-gui-software.md), [guide](docs/gui.md), [ADR-0009](docs/adr/0009-libui-widget-toolkit.md)) |
+| M24 — servers: TCP listening, /dev/random, background jobs, kill and ^C; sshd, httpd, telnetd, ircd, ftpd as packages | Achieved ([notes](docs/releases/0.31.0.md), [guide](docs/servers.md)) |
 
 ## Download and install
 

@@ -352,7 +352,7 @@ SCENARIOS = [
     {
         "name": "no disk",
         "disk": None,
-        "boot": ["devices: cons consctl com1 vga null sysname sysstat ps kbd mouse cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n", "Milestone M9: libc, ABI v2 and shell online"],
+        "boot": ["devices: cons consctl com1 vga null random sysname sysstat ps kbd mouse cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n", "Milestone M9: libc, ABI v2 and shell online"],
         "shell": [
             ("serial", "ls /bin", ["cat", "echo", "ls", "sh", "wc"]),
             ("serial", "echo 'a;b' c\\;d; echo e", ["\r\na;b c;d\r\ne\r\n"]),
@@ -389,7 +389,7 @@ SCENARIOS = [
             ("serial", "yes | dd | head -n 2", ["\r\ny\r\ny\r\n", "!broken pipe", "!records"]),
             ("keyboard", "cat < etc/motd | cat | wc", ["\r\n      1       3      19\r\n"]),
             ("serial", "echo hidden > /dev/null; echo shown", ["\r\nshown\r\n", "!\r\nhidden\r\n"]),
-            ("serial", "echo x > /boot/nosuch", ["sh: /boot/nosuch: no such file or directory"]),
+            ("serial", "echo x > /boot/nosuch", ["sh: /boot/nosuch: read-only file system"]),  # > makes files (0.31)
             ("serial", "nosuch | wc", ["sh: nosuch: not found", "      0       0       0"]),
             ("serial", "| wc", ["sh: empty command in a pipeline"]),
             ("serial", "cat <", ["sh: < needs a file"]),
@@ -438,7 +438,7 @@ SCENARIOS = [
         "disk": write_patterned_disk,
         "boot": ["ata0: QEMU HARDDISK, 8 MiB, LBA", "ata0: CHS cross-check passed",
                  "ata0p1: type 0x06, sectors 2048-16383",
-                 "devices: cons consctl com1 vga null sysname sysstat ps kbd mouse ata0 ata0p1 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
+                 "devices: cons consctl com1 vga null random sysname sysstat ps kbd mouse ata0 ata0p1 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
         "cases": [
             ("serial", "devices", ["ata0     block  16384 x 512 bytes (8 MiB)",
                                    "ata0p1   block  14336 x 512 bytes (7 MiB)"]),
@@ -488,7 +488,7 @@ SCENARIOS = [
     {
         "name": "partitionless FAT disk",
         "disk": write_superfloppy,
-        "boot": ["devices: cons consctl com1 vga null sysname sysstat ps kbd mouse ata0 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
+        "boot": ["devices: cons consctl com1 vga null random sysname sysstat ps kbd mouse ata0 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
         "cases": [],
     },
 ]

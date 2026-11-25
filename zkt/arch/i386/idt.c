@@ -4,7 +4,9 @@
 #include "irq.h"
 #include "isr.h"
 #include "pic.h"
+#include "process.h"
 #include "syscall.h"
+#include "zkt_abi.h"
 
 struct idt_entry {
 	uint16_t base_low;
@@ -109,10 +111,14 @@ void isr_handler(registers_t *regs)
 	if (regs->int_no == VECTOR_SYSCALL) {
 		regs->eax = (uint32_t)syscall_dispatch(regs->eax, regs->ebx, regs->ecx,
 		                                       regs->edx, regs->esi, regs->edi);
-		return;
+	} else {
+		if (regs->int_no < IRQ_BASE_VECTOR) {
+			exception_handle(regs);
+		}
+		irq_dispatch(regs->int_no - IRQ_BASE_VECTOR);
 	}
-	if (regs->int_no < IRQ_BASE_VECTOR) {
-		exception_handle(regs);
+	/* A killed process (0.31) goes on its way back to user mode. */
+	if ((regs->cs & 3) == 3 && process_killed(process_current())) {
+		process_exit(ZKT_WAIT_KILLED | ZKT_KILL_VECTOR);
 	}
-	irq_dispatch(regs->int_no - IRQ_BASE_VECTOR);
 }

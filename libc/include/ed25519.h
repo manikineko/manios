@@ -23,6 +23,15 @@ void sha512_update(struct sha512 *c, const void *data, size_t len);
 void sha512_final(struct sha512 *c, uint8_t out[SHA512_BYTES]);
 
 /* 0 if sig is a valid signature of msg under pk, else -1. */
+/* 0.31: the public key of a 32-byte secret seed, and a signature with
+ * it (RFC 8032: the seed is the private key). */
+void ed25519_public_key(const uint8_t seed[32], uint8_t pk[ED25519_PUBLIC_KEY]);
+void ed25519_sign(uint8_t sig[ED25519_SIGNATURE], const void *msg, size_t len, const uint8_t seed[32],
+                  const uint8_t pk[ED25519_PUBLIC_KEY]);
+/* X25519 (RFC 7748): scalar times point; _base: times the base point 9. */
+void x25519(uint8_t out[32], const uint8_t scalar[32], const uint8_t point[32]);
+void x25519_base(uint8_t out[32], const uint8_t scalar[32]);
+
 int ed25519_verify(const uint8_t sig[ED25519_SIGNATURE], const void *msg, size_t len,
                    const uint8_t pk[ED25519_PUBLIC_KEY]);
 

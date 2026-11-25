@@ -119,6 +119,10 @@ static long kbd_read(struct device *dev, void *buf, size_t len)
 	size_t n = 0;
 	uint32_t flags = cpu_irq_save();
 	while (ring_empty(&kbd_queue)) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
 		waitq_sleep(&kbd_ready);
 	}
 	while (n < len && !ring_empty(&kbd_queue)) {
@@ -141,6 +145,10 @@ static long mouse_read(struct device *dev, void *buf, size_t len)
 	size_t n = 0;
 	uint32_t flags = cpu_irq_save();
 	while (!mouse_count) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
 		waitq_sleep(&mouse_ready);
 	}
 	while (mouse_count) {

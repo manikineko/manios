@@ -27,6 +27,7 @@ struct process {
 	bool orphaned;          /* parent exited first: nobody will wait */
 	bool exited;
 	bool waited_on;
+	bool killed;            /* 0.31: kill -- it exits on its way back to user mode */
 	int status;
 	struct waitq exited_wq;
 	uintptr_t entry;
@@ -394,8 +395,13 @@ int process_wait(struct process *parent, int pid, int *status)
 		return -ECHILD;
 	}
 	p->waited_on = true;
-	while (!p->exited) {
+	while (!p->exited && !thread_interrupted()) {
 		waitq_sleep(&p->exited_wq);
+	}
+	if (!p->exited) {
+		p->waited_on = false; /* the waiter was killed: someone may wait again */
+		cpu_irq_restore(flags);
+		return -EINTR;
 	}
 	unlink_process(p);
 	cpu_irq_restore(flags);
@@ -449,6 +455,30 @@ __attribute__((noreturn)) void process_exit(int status)
 	}
 	cpu_irq_restore(flags);
 	thread_exit();
+}
+
+int process_kill(uint32_t pid)
+{
+	uint32_t flags = cpu_irq_save();
+	struct process *p = processes;
+	while (p && (p->pid != pid || p->exited)) {
+		p = p->next;
+	}
+	if (!p) {
+		cpu_irq_restore(flags);
+		return -ESRCH;
+	}
+	p->killed = true;
+	if (p->thread) {
+		thread_interrupt(p->thread);
+	}
+	cpu_irq_restore(flags);
+	return 0;
+}
+
+bool process_killed(const struct process *p)
+{
+	return p && p->killed && !p->exited;
 }
 
 void process_account_tick(void *process)

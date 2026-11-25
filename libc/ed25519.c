@@ -1,11 +1,12 @@
-/* Ed25519 verification (RFC 8032) and SHA-512 (FIPS 180-4).
+/* Ed25519 (RFC 8032), X25519 (RFC 7748) and SHA-512 (FIPS 180-4).
  *
  * The field and group arithmetic follow TweetNaCl (Daniel J. Bernstein,
  * Wesley Janssen, Tanja Lange, Peter Schwabe, Matthew Dempsky and
  * Sjaak Smetsers, https://tweetnacl.cr.yp.to/), which is in the public
  * domain: 16 limbs of 16 bits per field element, constant-shape
- * operations. Only verification is kept; signing is not needed on
- * ManiOS. The curve constants were computed for this file from their
+ * operations. Verification came first (pkg's signed index); signing
+ * and X25519 came with 0.31 for sshd's host key and key exchange. The
+ * curve constants were computed for this file from their
  * definitions in RFC 8032. Unlike TweetNaCl, a signature whose S is not
  * below the group order L is rejected (RFC 8032 5.1.7). */
 #include <ed25519.h>
@@ -456,4 +457,118 @@ int ed25519_verify(const uint8_t sig[ED25519_SIGNATURE], const void *msg, size_t
 		diff |= (unsigned)(t[i] ^ sig[i]);
 	}
 	return diff ? -1 : 0;
+}
+
+/* --- signing and X25519 (0.31) --- */
+
+static void expand_seed(const uint8_t seed[32], uint8_t d[64])
+{
+	struct sha512 c;
+	sha512_init(&c);
+	sha512_update(&c, seed, 32);
+	sha512_final(&c, d);
+	d[0] &= 248;
+	d[31] &= 127;
+	d[31] |= 64;
+}
+
+void ed25519_public_key(const uint8_t seed[32], uint8_t pk[ED25519_PUBLIC_KEY])
+{
+	uint8_t d[64];
+	gf p[4];
+	expand_seed(seed, d);
+	scalarbase(p, d);
+	pack(pk, p);
+	memset(d, 0, sizeof(d));
+}
+
+void ed25519_sign(uint8_t sig[ED25519_SIGNATURE], const void *msg, size_t len, const uint8_t seed[32],
+                  const uint8_t pk[ED25519_PUBLIC_KEY])
+{
+	uint8_t d[64], r[64], h[64];
+	gf p[4];
+	i64 x[64];
+	expand_seed(seed, d);
+	struct sha512 c;
+	sha512_init(&c);
+	sha512_update(&c, d + 32, 32);
+	sha512_update(&c, msg, len);
+	sha512_final(&c, r);
+	reduce(r);
+	scalarbase(p, r);
+	pack(sig, p);
+	sha512_init(&c);
+	sha512_update(&c, sig, 32);
+	sha512_update(&c, pk, 32);
+	sha512_update(&c, msg, len);
+	sha512_final(&c, h);
+	reduce(h);
+	for (int i = 0; i < 64; i++) {
+		x[i] = 0;
+	}
+	for (int i = 0; i < 32; i++) {
+		x[i] = (i64)(uint64_t)r[i];
+	}
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 32; j++) {
+			x[i + j] += h[i] * (i64)(uint64_t)d[j];
+		}
+	}
+	modL(sig + 32, x);
+	memset(d, 0, sizeof(d));
+	memset(r, 0, sizeof(r));
+}
+
+static const gf C121665 = {0xDB41, 1};
+
+void x25519(uint8_t out[32], const uint8_t scalar[32], const uint8_t point[32])
+{
+	uint8_t z[32];
+	gf x, a, b, c, d, e, f;
+	for (int i = 0; i < 31; i++) {
+		z[i] = scalar[i];
+	}
+	z[31] = (uint8_t)((scalar[31] & 127) | 64);
+	z[0] &= 248;
+	unpack25519(x, point);
+	for (int i = 0; i < 16; i++) {
+		b[i] = x[i];
+		d[i] = a[i] = c[i] = 0;
+	}
+	a[0] = d[0] = 1;
+	for (int i = 254; i >= 0; --i) {
+		int r = (z[i >> 3] >> (i & 7)) & 1;
+		sel25519(a, b, r);
+		sel25519(c, d, r);
+		A(e, a, c);
+		Z(a, a, c);
+		A(c, b, d);
+		Z(b, b, d);
+		S(d, e);
+		S(f, a);
+		M(a, c, a);
+		M(c, b, e);
+		A(e, a, c);
+		Z(a, a, c);
+		S(b, a);
+		Z(c, d, f);
+		M(a, c, C121665);
+		A(a, a, d);
+		M(c, c, a);
+		M(a, d, f);
+		M(d, b, x);
+		S(b, e);
+		sel25519(a, b, r);
+		sel25519(c, d, r);
+	}
+	inv25519(c, c);
+	M(a, a, c);
+	pack25519(out, a);
+	memset(z, 0, sizeof(z));
+}
+
+void x25519_base(uint8_t out[32], const uint8_t scalar[32])
+{
+	static const uint8_t nine[32] = {9};
+	x25519(out, scalar, nine);
 }

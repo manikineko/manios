@@ -73,3 +73,32 @@ void cpu_describe(char *buf, size_t size)
 	}
 	ksnprintf(buf, size, "%s family %lu model %lu", vendor, family, model);
 }
+
+/* The time-stamp counter's low half, where the CPU has one (Pentium
+ * on: CPUID leaf 1, EDX bit 4), else 0. For mixing into /dev/random
+ * (random.c), not for timing. */
+uint32_t cpu_cycles_low(void)
+{
+	static int has_tsc = -1;
+	if (has_tsc < 0) {
+		uint32_t r[4] = { 0, 0, 0, 0 };
+		if (eflags_bit_settable(EFLAGS_ID)) {
+			cpuid(0, r);
+			if (r[0] >= 1) {
+				cpuid(1, r);
+				has_tsc = (r[3] >> 4) & 1;
+			} else {
+				has_tsc = 0;
+			}
+		} else {
+			has_tsc = 0;
+		}
+	}
+	if (!has_tsc) {
+		return 0;
+	}
+	uint32_t lo, hi;
+	__asm__ volatile (".byte 0x0f, 0x31" : "=a"(lo), "=d"(hi)); /* rdtsc */
+	(void)hi;
+	return lo;
+}

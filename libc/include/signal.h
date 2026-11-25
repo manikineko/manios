@@ -27,5 +27,8 @@ typedef void (*sig_t)(int);
 
 sig_t signal(int sig, sig_t handler);
 int raise(int sig);
+/* 0.31: any signal but 0 stops process pid (as SIGKILL would; ManiOS has
+ * no handlers to run); 0 only asks whether it is there. */
+int kill(int pid, int sig);
 
 #endif

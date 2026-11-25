@@ -267,7 +267,8 @@ char *strerror(int err)
 	case ECONNRESET:   return "connection reset";
 	case EHOSTUNREACH: return "host unreachable";
 	case ENOTTY:       return "not a terminal";
-	case EINTR:        return "interrupted system call";
+	case EINTR:        return "interrupted (killed)";
+	case ESRCH:        return "no such process";
 	case EAGAIN:       return "resource temporarily unavailable";
 	case EILSEQ:       return "illegal byte sequence";
 	default:           return "unknown error";

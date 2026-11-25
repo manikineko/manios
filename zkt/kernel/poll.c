@@ -45,6 +45,10 @@ long poll_files(struct process *p, void *ufds, uint32_t count, int32_t timeout_m
 		if (ready || timeout_ms == 0) {
 			break;
 		}
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
 		if (timeout_ms < 0) {
 			waitq_sleep(&pollers);
 		} else if (!waitq_sleep_until(&pollers, deadline)) {

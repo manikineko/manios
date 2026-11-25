@@ -1,6 +1,7 @@
 #include "irq.h"
 #include "panic.h"
 #include "pic.h"
+#include "random.h"
 
 /* PCI cards share interrupt lines (INTA#-INTD# are routed onto a few
  * ISA IRQs, and level-triggered), so a line has a short list of
@@ -39,6 +40,7 @@ void irq_dispatch(unsigned irq)
 	 * handler may switch threads and not return here for a while. IF
 	 * stays clear until iret, so this cannot cause nesting. */
 	pic_send_eoi(irq);
+	random_irq(irq); /* when it came is a little entropy (random.c) */
 
 	if (!handlers[irq][0]) {
 		pic_mask(irq); /* lines start masked, so this is a stray; silence it */

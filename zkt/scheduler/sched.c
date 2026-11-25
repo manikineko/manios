@@ -47,7 +47,9 @@ struct thread {
 	struct thread *next;       /* run queue or wait queue link */
 	struct thread *sleep_next; /* sleep list link: a timed wait is on both */
 	struct waitq *waiting_on;  /* the wait queue of a timed wait */
+	struct waitq *blocked_on;  /* the wait queue it sleeps on, timed or not */
 	bool timed_out;
+	bool interrupted;          /* its process was killed (thread_interrupt) */
 	struct thread *all_next;   /* every thread not yet reclaimed */
 };
 
@@ -222,6 +224,8 @@ static struct thread *thread_alloc(const char *name, void (*entry)(void *), void
 	t->sleep_next = NULL;
 	t->waiting_on = NULL;
 	t->timed_out = false;
+	t->blocked_on = NULL;
+	t->interrupted = false;
 	t->ns = current ? current->ns : NULL;
 	ns_ref(t->ns);
 	t->as = NULL;
@@ -257,6 +261,8 @@ void sched_init(void)
 	main_thread->sleep_next = NULL;
 	main_thread->waiting_on = NULL;
 	main_thread->timed_out = false;
+	main_thread->blocked_on = NULL;
+	main_thread->interrupted = false;
 	main_thread->ns = NULL;
 	main_thread->as = NULL;
 	main_thread->process = NULL;
@@ -416,6 +422,7 @@ void waitq_sleep(struct waitq *wq)
 		panic("waitq_sleep: interrupts must be disabled around the condition check");
 	}
 	current->state = THREAD_BLOCKED;
+	current->blocked_on = wq;
 	current->next = NULL;
 	if (wq->tail) {
 		wq->tail->next = current;
@@ -451,6 +458,7 @@ static struct thread *waitq_pop(struct waitq *wq)
 			sleep_remove(t);
 			t->waiting_on = NULL;
 		}
+		t->blocked_on = NULL;
 		t->state = THREAD_RUNNABLE;
 		run_enqueue(t);
 	}
@@ -472,6 +480,34 @@ void waitq_wake_all(struct waitq *wq)
 	}
 	resched_if_idle();
 	cpu_irq_restore(flags);
+}
+
+void thread_interrupt(struct thread *t)
+{
+	uint32_t flags = cpu_irq_save();
+	t->interrupted = true;
+	if (t->state == THREAD_BLOCKED && t->blocked_on) {
+		waitq_remove(t->blocked_on, t);
+		t->blocked_on = NULL;
+		if (t->waiting_on) {
+			sleep_remove(t);
+			t->waiting_on = NULL;
+			t->timed_out = true;
+		}
+		t->state = THREAD_RUNNABLE;
+		run_enqueue(t);
+	} else if (t->state == THREAD_SLEEPING) {
+		sleep_remove(t);
+		t->state = THREAD_RUNNABLE;
+		run_enqueue(t);
+	}
+	resched_if_idle();
+	cpu_irq_restore(flags);
+}
+
+bool thread_interrupted(void)
+{
+	return current && current->interrupted;
 }
 
 size_t sched_thread_count(void)
@@ -498,6 +534,7 @@ void sched_tick(uint64_t now)
 		if (t->waiting_on) { /* a timed wait ran out */
 			waitq_remove(t->waiting_on, t);
 			t->waiting_on = NULL;
+			t->blocked_on = NULL;
 			t->timed_out = true;
 		}
 		t->state = THREAD_RUNNABLE;

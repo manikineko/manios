@@ -1,6 +1,9 @@
-/* TCP (RFC 9293), the client side: active open, in-order delivery,
+/* TCP (RFC 9293): active and passive open, in-order delivery,
  * retransmission with exponential back-off, flow control in both
- * directions and an orderly close. Enough to fetch from a web server.
+ * directions and an orderly close. Enough to fetch from a web server,
+ * and (0.31) to be one: a listener on a port takes SYNs, answers them
+ * from SYN_RCVD, and queues the connections the handshake completes
+ * until a program accepts them.
  *
  * Design. Each connection is a vnode a program reads and writes like a
  * pipe end. Segments arrive on the network thread (tcp_input), which
@@ -12,7 +15,8 @@
  *
  * Simplifications, each safe for a client: segments arriving out of
  * order are dropped and re-acknowledged (the peer retransmits them); no
- * congestion window beyond the peer's window; no listening sockets; a
+ * congestion window beyond the peer's window; a SYN to a port nothing
+ * listens on goes unanswered (no RST: the client times out); a
  * connection that has been closed by its owner is forgotten once both
  * FINs are acknowledged, or after TCP_ORPHAN_MS. */
 #include "tcp.h"
@@ -41,6 +45,7 @@
 #define TCP_ORPHAN_MS 30000
 #define TICK_MS 20
 #define EPHEMERAL_FIRST 49152
+#define BACKLOG 16 /* per listener: half-open plus not yet accepted */
 
 #define F_FIN 0x01
 #define F_SYN 0x02
@@ -49,12 +54,15 @@
 #define F_ACK 0x10
 
 enum tcp_state {
-	SYN_SENT, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSE_WAIT, CLOSING, LAST_ACK, TIME_WAIT,
+	SYN_SENT, SYN_RCVD, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSE_WAIT, CLOSING, LAST_ACK, TIME_WAIT,
 	CLOSED,
 };
 
+struct tcp_listener;
+
 struct tcp_conn {
 	struct vnode vnode; /* first: the vnode is the connection */
+	struct tcp_listener *listener; /* SYN_RCVD: who gets it once established */
 	enum tcp_state state;
 	uint32_t local_ip, remote_ip;
 	uint16_t local_port, remote_port;
@@ -88,12 +96,27 @@ struct tcp_conn {
 	struct tcp_conn *next;
 };
 
+/* A port programs accept connections on. The connections whose
+ * handshake has completed wait in `ready` (each with its one reference)
+ * until accepted. */
+struct tcp_listener {
+	struct vnode vnode; /* first */
+	uint16_t port;
+	struct tcp_conn *ready[BACKLOG];
+	int nready;
+	struct waitq changed;
+	struct tcp_listener *next;
+};
+
 struct tcp_stats tcp_stats;
 
 static struct tcp_conn *conns;
+static struct tcp_listener *listeners;
 static uint16_t next_ephemeral = EPHEMERAL_FIRST;
 static struct waitq work = WAITQ_INIT;
 static uint32_t iss_counter;
+
+static const struct vnode_ops conn_ops;
 
 static inline bool seq_lt(uint32_t a, uint32_t b) { return (int32_t)(a - b) < 0; }
 static inline bool seq_le(uint32_t a, uint32_t b) { return (int32_t)(a - b) <= 0; }
@@ -184,7 +207,38 @@ static void input(struct tcp_conn *c, uint32_t seq, uint32_t ack, uint8_t flags,
 	if (c->state == CLOSED) {
 		return;
 	}
-	if (c->state == SYN_SENT) {
+	if (c->state == SYN_RCVD) {
+		if (flags & F_RST) {
+			fail(c, -ECONNRESET);
+			return;
+		}
+		if ((flags & F_SYN) && !(flags & F_ACK)) {
+			c->syn_sent = false; /* the client's SYN again: our SYN-ACK was lost */
+			kick();
+			return;
+		}
+		if (!(flags & F_ACK) || ack != c->iss + 1) {
+			return;
+		}
+		/* The handshake is done: hand it to the listener. */
+		c->snd_una = ack;
+		c->snd_wnd = window;
+		c->state = ESTABLISHED;
+		c->rto_at = 0;
+		c->retries = 0;
+		c->rto_ms = RTO_INITIAL_MS;
+		struct tcp_listener *l = c->listener;
+		c->listener = 0;
+		if (!l || l->nready == BACKLOG) {
+			fail(c, -ECONNRESET); /* released: the thread frees it */
+			return;
+		}
+		c->released = false;
+		l->ready[l->nready++] = c;
+		waitq_wake_all(&l->changed);
+		poll_notify();
+		/* Data may come with the ACK: on as for any established one. */
+	} else if (c->state == SYN_SENT) {
 		if ((flags & F_ACK) && ack != c->iss + 1) {
 			return; /* not an answer to our SYN */
 		}
@@ -287,6 +341,70 @@ static void input(struct tcp_conn *c, uint32_t seq, uint32_t ack, uint8_t flags,
 	}
 }
 
+static struct tcp_listener *find_listener(uint16_t port)
+{
+	for (struct tcp_listener *l = listeners; l; l = l->next) {
+		if (l->port == port) {
+			return l;
+		}
+	}
+	return 0;
+}
+
+static uint32_t new_iss(uint32_t peer)
+{
+	/* An initial sequence number that differs per connection and per
+	 * boot (RFC 9293 3.4.1 asks for a clock-driven one). */
+	return (uint32_t)timer_uptime_ms() * 250u + (iss_counter += 64000u) + peer * 2654435761u;
+}
+
+/* A SYN for a port a program listens on: a connection in SYN_RCVD, which
+ * the tcp thread answers with SYN-ACK. Interrupts off. NULL when nothing
+ * listens there or its backlog is full (the SYN is dropped). */
+static struct tcp_conn *passive_open(uint32_t src, uint32_t dst, uint16_t sport, uint16_t dport,
+                                     uint32_t seq, uint16_t window, const uint8_t *opt, size_t optlen)
+{
+	struct tcp_listener *l = find_listener(dport);
+	if (!l) {
+		return 0;
+	}
+	int pending = l->nready;
+	for (struct tcp_conn *k = conns; k; k = k->next) {
+		pending += k->listener == l;
+	}
+	if (pending >= BACKLOG) {
+		return 0;
+	}
+	struct tcp_conn *c = kmalloc(sizeof(*c));
+	if (!c) {
+		return 0;
+	}
+	memset(c, 0, sizeof(*c));
+	c->vnode.ops = &conn_ops;
+	c->vnode.type = VNODE_PIPE;
+	c->vnode.refs = 1;
+	c->changed = (struct waitq)WAITQ_INIT;
+	c->state = SYN_RCVD;
+	c->listener = l;
+	c->released = true; /* nobody holds it until it is accepted */
+	c->local_ip = dst;
+	c->remote_ip = src;
+	c->local_port = dport;
+	c->remote_port = sport;
+	c->rcv_nxt = seq + 1;
+	c->snd_wnd = window;
+	c->mss = parse_mss(opt, optlen);
+	c->mss = c->mss > TCP_MSS ? TCP_MSS : c->mss < 64 ? 64 : c->mss;
+	c->rto_ms = RTO_INITIAL_MS;
+	c->iss = new_iss(src);
+	c->snd_una = c->iss;
+	c->next = conns;
+	conns = c;
+	tcp_stats.opened++;
+	kick();
+	return c;
+}
+
 void tcp_input(uint32_t src, uint32_t dst, const uint8_t *data, size_t len)
 {
 	tcp_stats.segs_in++;
@@ -311,10 +429,18 @@ void tcp_input(uint32_t src, uint32_t dst, const uint8_t *data, size_t len)
 	}
 	uint32_t flags = cpu_irq_save();
 	struct tcp_conn *c = find(src, get_be16(data), get_be16(data + 2));
+	if (!c && (data[13] & (F_SYN | F_ACK | F_RST)) == F_SYN) {
+		c = passive_open(src, dst, get_be16(data), get_be16(data + 2), get_be32(data + 4),
+		                 get_be16(data + 14), data + TCP_HEADER, hlen - TCP_HEADER);
+		if (c) {
+			cpu_irq_restore(flags);
+			return;
+		}
+	}
 	if (!c || c->local_ip != dst) {
 		cpu_irq_restore(flags);
 		tcp_stats.no_conn++;
-		return; /* nothing listens; a client may stay silent */
+		return; /* nothing listens: silent, as said above */
 	}
 	input(c, get_be32(data + 4), get_be32(data + 8), data[13], get_be16(data + 14),
 	      data + TCP_HEADER, hlen - TCP_HEADER, data + hlen, len - hlen);
@@ -383,7 +509,7 @@ static void service(struct tcp_conn *c, uint64_t now)
 		tcp_stats.retransmits++;
 		c->rto_ms = c->rto_ms * 2 > RTO_MAX_MS ? RTO_MAX_MS : c->rto_ms * 2;
 		c->rto_at = 0;
-		if (c->state == SYN_SENT) {
+		if (c->state == SYN_SENT || c->state == SYN_RCVD) {
 			c->syn_sent = false;
 		} else {
 			c->sent = 0; /* go back: resend from snd_una */
@@ -398,13 +524,14 @@ static void service(struct tcp_conn *c, uint64_t now)
 	uint32_t src = c->local_ip, dst = c->remote_ip;
 	uint16_t sport = c->local_port, dport = c->remote_port;
 
-	if (c->state == SYN_SENT) {
+	if (c->state == SYN_SENT || c->state == SYN_RCVD) {
 		if (!c->syn_sent) {
 			c->syn_sent = true;
 			c->rto_at = now + c->rto_ms;
-			uint32_t iss = c->iss;
+			uint32_t iss = c->iss, ack = c->rcv_nxt;
+			uint8_t f = c->state == SYN_RCVD ? F_SYN | F_ACK : F_SYN;
 			cpu_enable_interrupts();
-			emit(src, dst, sport, dport, iss, 0, F_SYN, (uint16_t)RECV_BUF, 0, 0);
+			emit(src, dst, sport, dport, iss, ack, f, (uint16_t)RECV_BUF, 0, 0);
 			(void)cpu_irq_save();
 		}
 		return;
@@ -539,6 +666,10 @@ static long conn_read(struct vnode *v, uint32_t offset, void *buf, size_t len)
 	uint8_t *out = buf;
 	uint32_t flags = cpu_irq_save();
 	while (!c->rbuf_len && !c->peer_fin && !c->error && c->state != CLOSED) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
 		waitq_sleep(&c->changed);
 	}
 	if (!c->rbuf_len && c->error && !c->peer_fin) {
@@ -568,6 +699,10 @@ static long conn_write(struct vnode *v, uint32_t offset, const void *buf, size_t
 	uint32_t flags = cpu_irq_save();
 	while (done < len) {
 		while (c->sbuf_len == SEND_BUF && !c->error && c->state != CLOSED) {
+			if (thread_interrupted()) {
+				cpu_irq_restore(flags);
+				return done ? (long)done : -EINTR;
+			}
 			waitq_sleep(&c->changed);
 		}
 		if (c->error || c->fin_queued
@@ -642,9 +777,7 @@ int tcp_connect(uint32_t dst, uint16_t port, uint32_t timeout_ms, struct vnode *
 	c->rto_ms = RTO_INITIAL_MS;
 
 	uint32_t flags = cpu_irq_save();
-	/* An initial sequence number that differs per connection and per
-	 * boot (RFC 9293 3.4.1 asks for a clock-driven one). */
-	c->iss = (uint32_t)timer_uptime_ms() * 250u + (iss_counter += 64000u) + dst * 2654435761u;
+	c->iss = new_iss(dst);
 	c->snd_una = c->iss;
 	uint16_t lport = 0;
 	for (unsigned tries = 0; tries < 65536 - EPHEMERAL_FIRST && !lport; tries++) {
@@ -665,7 +798,7 @@ int tcp_connect(uint32_t dst, uint16_t port, uint32_t timeout_ms, struct vnode *
 	tcp_stats.opened++;
 	kick();
 	uint64_t deadline = timer_ticks() + ((uint64_t)timeout_ms * TIMER_HZ + 999) / 1000;
-	while (c->state == SYN_SENT && waitq_sleep_until(&c->changed, deadline)) {
+	while (c->state == SYN_SENT && !thread_interrupted() && waitq_sleep_until(&c->changed, deadline)) {
 	}
 	int rc = c->state == SYN_SENT ? -ETIMEDOUT : c->error;
 	if (rc) {
@@ -677,6 +810,104 @@ int tcp_connect(uint32_t dst, uint16_t port, uint32_t timeout_ms, struct vnode *
 		cpu_irq_restore(flags);
 		return rc;
 	}
+	cpu_irq_restore(flags);
+	*out = &c->vnode;
+	return 0;
+}
+
+/* --- listening (0.31) --- */
+
+static long listener_read(struct vnode *v, uint32_t offset, void *buf, size_t len)
+{
+	(void)v, (void)offset, (void)buf, (void)len;
+	return -EINVAL; /* connections come from tcp_accept */
+}
+
+static int listener_poll(struct vnode *v)
+{
+	return ((struct tcp_listener *)v)->nready > 0;
+}
+
+static void listener_release(struct vnode *v)
+{
+	struct tcp_listener *l = (struct tcp_listener *)v;
+	uint32_t flags = cpu_irq_save();
+	struct tcp_listener **link = &listeners;
+	while (*link && *link != l) {
+		link = &(*link)->next;
+	}
+	if (*link) {
+		*link = l->next;
+	}
+	/* Half-open ones are dropped; finished but unaccepted ones closed. */
+	for (struct tcp_conn *c = conns; c; c = c->next) {
+		if (c->listener == l) {
+			c->listener = 0;
+			fail(c, -ECONNRESET);
+		}
+	}
+	for (int i = 0; i < l->nready; i++) {
+		conn_release(&l->ready[i]->vnode);
+	}
+	l->nready = 0;
+	kick();
+	cpu_irq_restore(flags);
+	kfree(l);
+}
+
+static const struct vnode_ops listener_ops = {
+	.read = listener_read,
+	.release = listener_release,
+	.poll = listener_poll,
+};
+
+int tcp_listen(uint16_t port, struct vnode **out)
+{
+	if (!port) {
+		return -EINVAL;
+	}
+	struct tcp_listener *l = kmalloc(sizeof(*l));
+	if (!l) {
+		return -ENOMEM;
+	}
+	memset(l, 0, sizeof(*l));
+	l->vnode.ops = &listener_ops;
+	l->vnode.type = VNODE_PIPE;
+	l->vnode.refs = 1;
+	l->changed = (struct waitq)WAITQ_INIT;
+	l->port = port;
+	uint32_t flags = cpu_irq_save();
+	if (find_listener(port)) {
+		cpu_irq_restore(flags);
+		kfree(l);
+		return -EADDRINUSE;
+	}
+	l->next = listeners;
+	listeners = l;
+	cpu_irq_restore(flags);
+	*out = &l->vnode;
+	return 0;
+}
+
+int tcp_accept(struct vnode *v, struct vnode **out, uint32_t *ip, uint16_t *port)
+{
+	if (v->ops != &listener_ops) {
+		return -EINVAL;
+	}
+	struct tcp_listener *l = (struct tcp_listener *)v;
+	uint32_t flags = cpu_irq_save();
+	while (!l->nready) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
+		waitq_sleep(&l->changed);
+	}
+	struct tcp_conn *c = l->ready[0];
+	l->nready--;
+	memmove(l->ready, l->ready + 1, (size_t)l->nready * sizeof(l->ready[0]));
+	*ip = c->remote_ip;
+	*port = c->remote_port;
 	cpu_irq_restore(flags);
 	*out = &c->vnode;
 	return 0;

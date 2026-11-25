@@ -17,6 +17,7 @@
 #include "pci.h"
 #include "ps2kbd.h"
 #include "ps2mouse.h"
+#include "random.h"
 #include "rtc.h"
 #include "sb16.h"
 #include "serial.h"
@@ -30,6 +31,7 @@ void drivers_init(void)
 	serial_start();
 	vga_register();
 	null_register();
+	random_register();
 	sysname_register();
 	sysstat_register();
 	ps2kbd_init();

@@ -85,6 +85,17 @@
                          * HOST is a name (resolved with DNS) or A.B.C.D. Reads and
                          * writes are a byte stream; closing the last descriptor
                          * closes the connection. Added under version 2 (0.29.0). */
+#define SYS_ANNOUNCE 33 /* (const char *addr) -> fd: listens for TCP connections,
+                         * addr "tcp!*!PORT" (every address). The descriptor polls
+                         * readable while connections wait; closing it stops
+                         * listening. EADDRINUSE: something listens there. (0.31.0) */
+#define SYS_KILL     35 /* (int pid) -> 0: the process exits (status ZKT_WAIT_KILLED |
+                         * ZKT_KILL_VECTOR) as soon as it is back from the kernel;
+                         * what it waits on (a read, accept, wait, poll, sleep) gives
+                         * up. ESRCH: no such process. (0.31.0) */
+#define SYS_ACCEPT   34 /* (int fd, char *remote, uint32_t len) -> fd: waits for a
+                         * connection on a listening fd; remote (if not NULL) gets
+                         * "A.B.C.D!PORT" of the other end. (0.31.0) */
 
 /* Paths may be relative to the process's current directory ("/" for a
  * program the kernel starts; a child inherits its parent's). They are
@@ -158,6 +169,7 @@ struct zkt_pollfd {
 /* SYS_WAIT status: an exit code 0-255, or ZKT_WAIT_KILLED plus the CPU
  * exception vector that killed the process. */
 #define ZKT_WAIT_KILLED 0x100
+#define ZKT_KILL_VECTOR 0xFF /* with ZKT_WAIT_KILLED: by SYS_KILL or ^C (0.31) */
 #define ZKT_WAIT_VECTOR(s) ((s) & 0xFF)
 #define ZKT_WAIT_CODE(s) ((s) & 0xFF)
 
@@ -167,6 +179,8 @@ struct zkt_pollfd {
 /* Error numbers (returned negated). Traditional Unix values. */
 #define EPERM         1
 #define ENOENT        2
+#define ESRCH         3   /* no such process (SYS_KILL) */
+#define EINTR         4   /* the waiting process was killed */
 #define E2BIG         7
 #define ENOEXEC       8
 #define EBADF         9

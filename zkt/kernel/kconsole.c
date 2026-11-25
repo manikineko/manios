@@ -7,6 +7,7 @@
 #include "lfb_console.h"
 #include "mutex.h"
 #include "poll.h"
+#include "process.h"
 #include "ring.h"
 #include "sched.h"
 #include "serial.h"
@@ -117,8 +118,40 @@ void kconsole_write_dec(uint32_t value)
 	kconsole_write(&buf[i]);
 }
 
+/* The foreground: what ^C stops (0.31). The shell names the processes of
+ * the command it waits for ("fg PID..." to /dev/consctl) and clears them
+ * ("fg") when they are done. */
+#define FG_MAX 8
+static uint32_t fg[FG_MAX];
+static bool raw_mode;
+static uint32_t raw_owner; /* the process that turned raw mode on */
+
 void console_input(char c)
 {
+	if (c == 0x03 && !raw_mode) { /* ^C: stop the foreground, drop the line */
+		kconsole_write("^C\n"); /* first: a killed program's shell prompts at once */
+		/* Taken out of fg before any kill: a kill may switch to the shell
+		 * right away (from idle), which names its next command's
+		 * processes while this is still running. */
+		uint32_t victims[FG_MAX];
+		memcpy(victims, fg, sizeof(fg));
+		memset(fg, 0, sizeof(fg));
+		bool any = false;
+		for (int i = 0; i < FG_MAX; i++) {
+			if (victims[i]) {
+				any |= process_kill(victims[i]) == 0;
+			}
+		}
+		if (!any && !ring_full(&input)) {
+			ring_push(&input, 0x15);    /* at a prompt: the line goes, */
+			if (!ring_full(&input)) {
+				ring_push(&input, '\r'); /* and an empty one prompts again */
+			}
+		}
+		waitq_wake_all(&input_ready);
+		poll_notify();
+		return;
+	}
 	if (!ring_full(&input)) {
 		ring_push(&input, (uint8_t)c);
 	}
@@ -126,15 +159,20 @@ void console_input(char c)
 	poll_notify();
 }
 
-static char raw_getc(void)
+/* The next key; -1 if the reader was killed (0.31) while it waited. */
+static int raw_getc(void)
 {
 	uint32_t flags = cpu_irq_save();
 	while (ring_empty(&input)) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -1;
+		}
 		waitq_sleep(&input_ready);
 	}
 	char c = (char)ring_pop(&input);
 	cpu_irq_restore(flags);
-	return c;
+	return (unsigned char)c;
 }
 
 /* The line discipline: the console is "cooked", as Plan 9's /dev/cons
@@ -153,11 +191,15 @@ static size_t line_len, line_pos; /* a finished line, handed out from line_pos *
  * line. ^D after some input ends the line without a newline. */
 static bool after_cr;
 
-static bool edit_line(void)
+static int edit_line(void)
 {
 	line_len = 0;
 	for (;;) {
-		char c = raw_getc();
+		int c = raw_getc();
+		if (c < 0) {
+			line_len = 0;
+			return -1;
+		}
 		if (c == '\n' && after_cr) {
 			after_cr = false;
 			continue;
@@ -167,7 +209,7 @@ static bool edit_line(void)
 		if (c == '\r' || c == '\n') {
 			kconsole_write("\n");
 			line[line_len++] = '\n';
-			return true;
+			return 1;
 		}
 		if (c == CTRL_D) {
 			return line_len > 0;
@@ -183,8 +225,8 @@ static bool edit_line(void)
 		}
 		/* One byte stays free for the newline. */
 		if (c >= 0x20 && c < 0x7F && line_len + 1 < CONSOLE_LINE_MAX) {
-			line[line_len++] = c;
-			kconsole_putc(c);
+			line[line_len++] = (char)c;
+			kconsole_putc((char)c);
 		}
 	}
 }
@@ -192,8 +234,8 @@ static bool edit_line(void)
 /* Raw mode (0.30, /dev/consctl "rawon", as in Plan 9): reads return the
  * keys as they come, at least one, without echo or editing; the
  * keyboard's arrows and editing keys arrive as the ANSI sequences a
- * terminal sends (input.c). Closing consctl, or "rawoff", ends it. */
-static bool raw_mode;
+ * terminal sends (input.c). "rawoff", or the process that turned it on
+ * closing consctl (or exiting), ends it. */
 
 bool console_is_raw(void)
 {
@@ -212,6 +254,11 @@ static long cons_read(struct device *dev, void *buf, size_t len)
 		size_t n = 0;
 		uint32_t flags = cpu_irq_save();
 		while (ring_empty(&input)) {
+			if (thread_interrupted()) {
+				cpu_irq_restore(flags);
+				mutex_unlock(&reader_lock);
+				return -EINTR;
+			}
 			waitq_sleep(&input_ready);
 		}
 		while (n < len && !ring_empty(&input)) {
@@ -223,10 +270,11 @@ static long cons_read(struct device *dev, void *buf, size_t len)
 	}
 	if (line_pos == line_len) {
 		line_pos = 0;
-		if (!edit_line()) {
+		int got = edit_line();
+		if (got <= 0) {
 			line_len = 0;
 			mutex_unlock(&reader_lock);
-			return 0;
+			return got < 0 ? -EINTR : 0;
 		}
 	}
 	size_t n = line_len - line_pos < len ? line_len - line_pos : len;
@@ -274,15 +322,41 @@ static const struct char_device_ops cons_ops = { .read = cons_read, .write = con
 	                                              .poll = cons_poll };
 static struct device cons_device = { .name = "cons", .class = DEVICE_CHAR, .char_ops = &cons_ops };
 
-/* /dev/consctl: "rawon", "rawoff"; closing it ends raw mode. */
+/* /dev/consctl: "rawon", "rawoff"; "fg PID..." and "fg" (0.31). */
 static long consctl_write(struct device *dev, const void *buf, size_t len)
 {
 	(void)dev;
 	const char *s = buf;
+	struct process *me = process_current();
 	if (len >= 5 && !memcmp(s, "rawon", 5)) {
 		raw_mode = true;
+		raw_owner = me ? process_pid(me) : 0;
 	} else if (len >= 6 && !memcmp(s, "rawoff", 6)) {
 		raw_mode = false;
+	} else if (len >= 2 && !memcmp(s, "fg", 2) && (len == 2 || s[2] == ' ' || s[2] == '\n')) {
+		uint32_t pids[FG_MAX] = { 0 };
+		int n = 0;
+		for (size_t i = 2; i < len && n < FG_MAX;) {
+			while (i < len && (s[i] == ' ' || s[i] == '\n')) {
+				i++;
+			}
+			uint32_t v = 0;
+			bool digits = false;
+			while (i < len && s[i] >= '0' && s[i] <= '9') {
+				v = v * 10 + (uint32_t)(s[i++] - '0');
+				digits = true;
+			}
+			if (i < len && s[i] != ' ' && s[i] != '\n') {
+				return -EINVAL;
+			}
+			if (digits && v) {
+				pids[n++] = v;
+			}
+		}
+		uint32_t flags = cpu_irq_save();
+		memcpy(fg, pids, sizeof(fg));
+		cpu_irq_restore(flags);
+		return (long)len;
 	} else {
 		return -EINVAL;
 	}
@@ -319,7 +393,10 @@ static uint32_t consctl_size(struct device *dev)
 static void consctl_close(struct device *dev)
 {
 	(void)dev;
-	raw_mode = false;
+	struct process *me = process_current();
+	if (!me || process_pid(me) == raw_owner) {
+		raw_mode = false;
+	}
 }
 
 static const struct char_device_ops consctl_ops = { .write = consctl_write, .pread = consctl_pread,

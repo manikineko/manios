@@ -74,6 +74,10 @@ long pipe_recv(struct vnode *v, void *buf, size_t len, uint64_t deadline)
 	struct direction *d = &p->dir[e->side];
 	uint32_t flags = cpu_irq_save();
 	while (!d->head && p->open[1 - e->side]) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			return -EINTR;
+		}
 		if (!deadline) {
 			waitq_sleep(&d->readable);
 		} else if (!waitq_sleep_until(&d->readable, deadline)) {
@@ -124,6 +128,11 @@ long pipe_send(struct vnode *v, const void *buf, size_t len)
 
 	uint32_t flags = cpu_irq_save();
 	while (p->open[1 - e->side] && d->bytes && d->bytes + len > PIPE_CAPACITY) {
+		if (thread_interrupted()) {
+			cpu_irq_restore(flags);
+			kfree(m);
+			return -EINTR;
+		}
 		waitq_sleep(&d->writable);
 	}
 	if (!p->open[1 - e->side]) {

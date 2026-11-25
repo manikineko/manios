@@ -108,6 +108,13 @@ void waitq_wake_all(struct waitq *wq);
 /* Threads not yet reclaimed, including main (until it exits) and idle. */
 size_t sched_thread_count(void);
 
+/* Wakes t from whatever it waits on (0.31: kill). Waits that a program
+ * blocks in check thread_interrupted() and give up with -EINTR; the
+ * others go on waiting for what they wait for. Interrupts any state. */
+void thread_interrupt(struct thread *t);
+/* Whether the current thread was interrupted: it should stop waiting. */
+bool thread_interrupted(void);
+
 /* Called by the timer interrupt on every tick. */
 void sched_tick(uint64_t now);
 

@@ -3,8 +3,9 @@
 
 #include <zkt_abi.h> /* the error numbers themselves */
 
+/* EINTR (4) and ESRCH (3) are the kernel's since 0.31: a wait given up
+ * because the process was killed, and no such process (kill). */
 /* Numbers only the library reports; the kernel never returns them. */
-#define EINTR   4 /* never: ManiOS delivers no signals */
 #define EAGAIN 11 /* never yet: nothing is non-blocking */
 #define ENOTTY 25 /* not a terminal: ioctl() */
 #define EILSEQ 84 /* an illegal byte sequence */

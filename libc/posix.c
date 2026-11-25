@@ -198,3 +198,31 @@ time_t time(time_t *t)
 	}
 	return now;
 }
+
+long __zkt_kill(int pid); /* syscalls.c: SYS_KILL (manios.h's proc_kill clashes with POSIX here) */
+
+int kill(int pid, int sig)
+{
+	if (sig < 0 || sig >= NSIG) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (sig == 0) {
+		/* Whether it is there: /dev/ps lists every process. */
+		FILE *f = fopen("/dev/ps", "r");
+		char line[160];
+		int found = 0;
+		while (f && fgets(line, sizeof(line), f)) {
+			found |= atoi(line) == pid;
+		}
+		if (f) {
+			fclose(f);
+		}
+		if (!found) {
+			errno = ESRCH;
+			return -1;
+		}
+		return 0;
+	}
+	return (int)__zkt_kill(pid);
+}

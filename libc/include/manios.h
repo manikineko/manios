@@ -73,6 +73,17 @@ int mount(const char *dial, const char *old_path, int flag, const char *aname);
  * A.B.C.D. The descriptor reads and writes a byte stream; read returns 0
  * once the peer has finished sending. Waits up to about 15 seconds. */
 int dial(const char *addr);
+/* Listens for TCP connections (0.31): addr is "tcp!*!PORT". The
+ * descriptor polls readable while connections wait; close it to stop.
+ * EADDRINUSE when something listens on that port already. */
+int announce(const char *addr);
+/* Waits for a connection on a descriptor from announce() and returns its
+ * descriptor (a byte stream, as dial() gives). If remote is not NULL it
+ * gets "A.B.C.D!PORT" of the other end (len bytes at most). */
+int accept_conn(int fd, char *remote, size_t len);
+/* Stops process pid (0.31): it exits, status ZKT_WAIT_KILLED |
+ * ZKT_KILL_VECTOR, and whatever it waits on gives up. ESRCH: none. */
+int proc_kill(int pid);
 /* Keys as they are pressed, unechoed (on != 0), or lines again (0):
  * on the console and in ManiDE's terminal; arrows come as ANSI escape
  * sequences (0.30, conraw.c). Turn it off before exiting. */

@@ -6,6 +6,8 @@ const char *kstrerror(int err)
 	case 0:            return "success";
 	case EPERM:        return "operation not permitted";
 	case ENOENT:       return "no such file or directory";
+	case ESRCH:        return "no such process";
+	case EINTR:        return "interrupted (killed)";
 	case EIO:          return "I/O error";
 	case ENXIO:        return "beyond end of device";
 	case EBADF:        return "bad file handle";

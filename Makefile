@@ -120,7 +120,11 @@ ALL_BOOTFS_FILES := $(patsubst %,$(BUILD)/bootfs/%,$(USER_PROGRAMS)) \
                 $(BUILD)/bootfs/bin/dos $(BUILD)/bootfs/autoexec.bat \
                 $(BUILD)/bootfs/bin/dosrun \
                 $(BUILD)/bootfs/test/pipeseek1
-BOOTFS_FILES := $(filter-out $(BASE_ONLY),$(ALL_BOOTFS_FILES))
+# Test programs the tests put on their own disks (0.31.0): the full system
+# is close to what a 7 MiB machine can hold, and a program in the boot
+# archive costs twice its size there (in the kernel and in the boot area).
+TEST_DISK_ONLY := $(BUILD)/bootfs/test/ltest
+BOOTFS_FILES := $(filter-out $(BASE_ONLY) $(TEST_DISK_ONLY),$(ALL_BOOTFS_FILES))
 BOOTFS_OBJECT := $(BUILD)/bootfs.o
 # The base system (ADR-0011, 0.30.0): the same kernel and programs
 # without ManiDE and ManiDOS, which installed systems get as packages
@@ -130,7 +134,7 @@ BASE := $(BUILD)/base
 BASE_LEFT_OUT := $(BUILD)/bootfs/bin/manide $(DESKTOP_BOOTFS) $(BUILD)/bootfs/bin/desktop \
                  $(BUILD)/bootfs/etc/manide $(BUILD)/bootfs/bin/dos $(BUILD)/bootfs/autoexec.bat \
                  $(BUILD)/bootfs/bin/dosrun
-BASE_FILES := $(filter-out $(BASE_LEFT_OUT),$(ALL_BOOTFS_FILES))
+BASE_FILES := $(filter-out $(BASE_LEFT_OUT) $(TEST_DISK_ONLY),$(ALL_BOOTFS_FILES))
 BASE_BOOTAREA := $(BASE)/manios-base.bin
 # CD_REPO=DIR (tools/mkrepo.py --cd DIR) puts the signed package
 # repository on the ISO as REPO, for installing without a network.
@@ -143,7 +147,7 @@ CD_REPO ?=
 # A recipe that fails leaves no half-made file behind for make to trust.
 .DELETE_ON_ERROR:
 
-all: $(KERNEL) $(ISO)
+all: $(KERNEL) $(ISO) $(TEST_DISK_ONLY)
 
 toolchain:
 	tools/toolchain/build-i686-elf-toolchain.sh
@@ -396,7 +400,7 @@ release: $(ISO) $(KERNEL)
 run: $(KERNEL)
 	tools/qemu-run.sh $(KERNEL)
 
-test: $(KERNEL) test-images
+test: $(KERNEL) test-images $(TEST_DISK_ONLY)
 	python3 tools/mkfont.py --check
 	tests/boot_smoke_test.sh $(KERNEL)
 	python3 tests/install_test.py $(BUILD)
@@ -406,6 +410,8 @@ test: $(KERNEL) test-images
 	python3 tests/openbsd_test.py $(KERNEL)
 	python3 tests/net_test.py $(KERNEL)
 	python3 tests/net_tcp_test.py $(KERNEL)
+	python3 tests/net_listen_test.py $(KERNEL)
+	python3 tests/jobs_test.py $(KERNEL)
 	python3 tests/gfx_test.py $(KERNEL)
 	python3 tests/vbe_test.py $(KERNEL)
 	python3 tests/desktop_test.py $(KERNEL)

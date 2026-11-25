@@ -78,4 +78,11 @@ size_t process_list(struct process_info *out, size_t max);
  * if the children are all still running, -ECHILD if there are none. */
 int process_reap(struct process *parent, int *status);
 
+/* 0.31: marks process pid killed and wakes it from what it waits on; it
+ * exits (ZKT_WAIT_KILLED | ZKT_KILL_VECTOR) the next time it would go
+ * back to user mode. -ESRCH if there is no such process. Callable with
+ * interrupts off (the console's ^C). */
+int process_kill(uint32_t pid);
+bool process_killed(const struct process *p);
+
 #endif

@@ -422,6 +422,81 @@ static long sys_dial(struct process *p, const char *udial)
 	return fd;
 }
 
+/* "tcp!*!PORT" (0.31): a descriptor that listens on PORT; connections
+ * come from SYS_ACCEPT. */
+static long sys_announce(struct process *p, const char *uaddr)
+{
+	char addr[32];
+	long rc = copy_string_from_user(addr, uaddr, sizeof(addr));
+	if (rc < 0) {
+		return rc;
+	}
+	if (strncmp(addr, "tcp!*!", 6) != 0 || !addr[6]) {
+		return -EINVAL;
+	}
+	uint32_t port = 0;
+	for (const char *d = addr + 6; *d; d++) {
+		if (*d < '0' || *d > '9' || (port = port * 10 + (uint32_t)(*d - '0')) > 65535) {
+			return -EINVAL;
+		}
+	}
+	struct vnode *l;
+	rc = tcp_listen((uint16_t)port, &l);
+	if (rc) {
+		return rc;
+	}
+	struct file *f;
+	if (vfs_open_vnode(l, ORDWR, "tcp", &f) != 0) {
+		vnode_unref(l);
+		return -ENOMEM;
+	}
+	int fd = process_fd_install(p, f);
+	if (fd < 0) {
+		vfs_close(f);
+	}
+	return fd;
+}
+
+/* Waits for a connection on a listening descriptor; gives it a
+ * descriptor, and "A.B.C.D!PORT" of the other end in uremote (if not
+ * NULL, len bytes at most with the NUL). */
+static long sys_accept(struct process *p, int lfd, char *uremote, uint32_t len)
+{
+	struct file *lf = process_fd(p, lfd);
+	if (!lf) {
+		return -EBADF;
+	}
+	struct vnode *conn;
+	uint32_t ip;
+	uint16_t port;
+	long rc = tcp_accept(vfs_vnode(lf), &conn, &ip, &port);
+	if (rc) {
+		return rc;
+	}
+	struct file *f;
+	if (vfs_open_vnode(conn, ORDWR, "tcp", &f) != 0) {
+		vnode_unref(conn);
+		return -ENOMEM;
+	}
+	int fd = process_fd_install(p, f);
+	if (fd < 0) {
+		vfs_close(f);
+		return fd;
+	}
+	if (uremote && len) {
+		char who[24];
+		int n = ksnprintf(who, sizeof(who), "%u.%u.%u.%u!%u", (unsigned)(ip >> 24),
+		                  (unsigned)(ip >> 16 & 255), (unsigned)(ip >> 8 & 255), (unsigned)(ip & 255),
+		                  (unsigned)port);
+		size_t m = (size_t)n + 1 < len ? (size_t)n + 1 : len;
+		who[m - 1] = 0;
+		if (copy_to_user(uremote, who, m)) {
+			return -EFAULT;
+		}
+	}
+	return fd;
+}
+
 static long sys_pipe(struct process *p, int *ufds)
 {
 	struct vnode *ends[2];
@@ -646,6 +721,9 @@ long syscall_dispatch(uint32_t num, uint32_t a0, uint32_t a1, uint32_t a2,
 	case SYS_POLL:   return poll_files(p, (void *)a0, a1, (int32_t)a2);
 	case SYS_PIPE:   return sys_pipe(p, (int *)a0);
 	case SYS_DIAL:   return sys_dial(p, (const char *)a0);
+	case SYS_ANNOUNCE: return sys_announce(p, (const char *)a0);
+	case SYS_ACCEPT: return sys_accept(p, (int)a0, (char *)a1, a2);
+	case SYS_KILL:   return a0 ? process_kill(a0) : -ESRCH;
 	case SYS_DUP: {
 		struct file *f = process_fd(p, (int)a0);
 		if (!f) {
