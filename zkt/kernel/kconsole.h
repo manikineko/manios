@@ -28,6 +28,8 @@ void kconsole_progress(const char *s);
  * keyboard and serial IRQ handlers; the byte is dropped if the queue
  * is full. */
 void console_input(char c);
+/* Raw mode: /dev/consctl "rawon" (0.30). */
+bool console_is_raw(void);
 
 /* Registers device "cons", the equivalent of Plan 9's /dev/cons. Writes
  * go to the console output. Reads are "cooked": input is echoed and can

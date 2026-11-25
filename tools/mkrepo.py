@@ -113,6 +113,7 @@ def build_native(recipe, out, version):
         "cmds": cmds,
         "env": [],
         "requires": recipe.get("requires", []),
+        "minos": recipe.get("minos", ""),
         "source": f"https://github.com/manikineko/manios/tree/v{version}",
         "origin": f"https://github.com/manikineko/manios/tree/v{version}",
         "files": sorted(files, key=str.upper),
@@ -184,6 +185,7 @@ def build(recipe, downloads, out, db, origin_base):
         "env": recipe.get("env", []),
         # Every DOS program runs through ManiDOS's dosrun.
         "requires": ["manidos"] + recipe.get("requires", []),
+        "minos": recipe.get("minos", ""),
         "source": src_name,
         "origin": origin,
         "source_sha256": hashlib.sha256(spath.read_bytes()).hexdigest(),
@@ -207,6 +209,8 @@ def index_text(pkgs, groups):
             lines.append(e)
         if p["requires"]:
             lines.append(f"requires {' '.join(p['requires'])}")
+        if p["minos"]:
+            lines.append(f"minos {p['minos']}")
         lines.append(f"source {p['source']}")
         lines.append("end")
     return "\n".join(lines) + "\n"

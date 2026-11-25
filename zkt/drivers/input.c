@@ -53,6 +53,24 @@ void input_key(uint8_t key, bool alt)
 		poll_notify();
 	} else if (key < 0x80) {
 		console_input((char)key); /* the console has no use for Alt */
+	} else if (console_is_raw()) {
+		/* Raw readers (an editor) get the keys a terminal would send. */
+		static const struct {
+			uint8_t key;
+			const char *seq;
+		} SEQ[] = {
+			{ ZKT_KEY_UP, "\033[A" },    { ZKT_KEY_DOWN, "\033[B" },  { ZKT_KEY_RIGHT, "\033[C" },
+			{ ZKT_KEY_LEFT, "\033[D" },  { ZKT_KEY_HOME, "\033[H" },  { ZKT_KEY_END, "\033[F" },
+			{ ZKT_KEY_PGUP, "\033[5~" }, { ZKT_KEY_PGDN, "\033[6~" }, { ZKT_KEY_INSERT, "\033[2~" },
+			{ ZKT_KEY_DELETE, "\033[3~" },
+		};
+		for (unsigned i = 0; i < sizeof(SEQ) / sizeof(SEQ[0]); i++) {
+			if (SEQ[i].key == key) {
+				for (const char *c = SEQ[i].seq; *c; c++) {
+					console_input(*c);
+				}
+			}
+		}
 	}
 }
 

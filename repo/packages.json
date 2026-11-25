@@ -368,7 +368,8 @@
         "envpath NLSPATH=NLS"
       ],
       "title": "FreeDOS FIND",
-      "summary": "Search for text in files (FIND 3.0b). Needs ManiOS 0.29.1 or later."
+      "summary": "Search for text in files (FIND 3.0b).",
+      "minos": "0.29.1"
     },
     {
       "name": "unzip",
@@ -431,6 +432,18 @@
         "bin/welcome": "build/bootfs/bin/welcome",
         "bin/widgets": "build/bootfs/bin/widgets"
       }
+    },
+    {
+      "name": "edit",
+      "kind": "native",
+      "title": "edit: a text editor",
+      "summary": "A full-screen text editor for the console and ManiDE's terminal: arrows, ^O save, ^X exit, ^W find, ^L go to line, ^K/^U cut and paste lines. Keeps DOS (CR LF) line ends.",
+      "license": "BSD-2-Clause",
+      "status": "Tested on ManiOS 0.30.1: typing, saving, DOS line ends, cut and paste, find, the PS/2 keyboard and ManiDE's terminal (tests/edit_test.py)",
+      "files": {
+        "bin/edit": "build/apps/bin/edit"
+      },
+      "minos": "0.30.1"
     }
   ],
   "groups": {

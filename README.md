@@ -1,10 +1,9 @@
 # ManiOS
 
-Current development version: **0.30.0** -- a Debian-style installer
-with profiles (desktop, server, server + DOS), ManiDE and ManiDOS as
-packages ([notes](docs/releases/0.30.0.md), [install](docs/install.md)).
-Latest release: [0.29.1](docs/releases/0.29.1.md) -- the `pkg` package
-manager and the repository at http://manios.nl/repo ([guide](docs/pkg.md)).
+Current development version: **0.30.1** -- `edit`, a text editor in the
+package repository, and raw keys for programs ([notes](docs/releases/0.30.1.md)).
+Latest release: [0.30.0](docs/releases/0.30.0.md) -- a Debian-style installer
+with profiles; ManiDE and ManiDOS as packages ([install](docs/install.md)).
 
 An independent operating system with **ZKT (ZygKernel Technology)** at
 its core, BSD technology adopted where it legally and technically earns

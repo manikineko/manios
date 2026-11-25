@@ -352,7 +352,7 @@ SCENARIOS = [
     {
         "name": "no disk",
         "disk": None,
-        "boot": ["devices: cons com1 vga null sysname sysstat ps kbd mouse cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n", "Milestone M9: libc, ABI v2 and shell online"],
+        "boot": ["devices: cons consctl com1 vga null sysname sysstat ps kbd mouse cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n", "Milestone M9: libc, ABI v2 and shell online"],
         "shell": [
             ("serial", "ls /bin", ["cat", "echo", "ls", "sh", "wc"]),
             ("serial", "echo 'a;b' c\\;d; echo e", ["\r\na;b c;d\r\ne\r\n"]),
@@ -438,7 +438,7 @@ SCENARIOS = [
         "disk": write_patterned_disk,
         "boot": ["ata0: QEMU HARDDISK, 8 MiB, LBA", "ata0: CHS cross-check passed",
                  "ata0p1: type 0x06, sectors 2048-16383",
-                 "devices: cons com1 vga null sysname sysstat ps kbd mouse ata0 ata0p1 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
+                 "devices: cons consctl com1 vga null sysname sysstat ps kbd mouse ata0 ata0p1 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
         "cases": [
             ("serial", "devices", ["ata0     block  16384 x 512 bytes (8 MiB)",
                                    "ata0p1   block  14336 x 512 bytes (7 MiB)"]),
@@ -488,7 +488,7 @@ SCENARIOS = [
     {
         "name": "partitionless FAT disk",
         "disk": write_superfloppy,
-        "boot": ["devices: cons com1 vga null sysname sysstat ps kbd mouse ata0 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
+        "boot": ["devices: cons consctl com1 vga null sysname sysstat ps kbd mouse ata0 cd0 fd0 beep lpt1 nvram power fb fbctl time\r\n"],
         "cases": [],
     },
 ]

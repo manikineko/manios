@@ -64,6 +64,7 @@ struct pkg {
 	char env[4][80]; /* launcher lines: "env NAME=VALUE" or "envpath NAME=DIR" */
 	int nreqs;
 	char req[REQS_MAX][9]; /* packages this one needs */
+	char minos[16];        /* the oldest ManiOS it runs on (0.30.1) */
 };
 
 struct group {
@@ -410,6 +411,7 @@ static void parse_index(char *text)
 			FIELD("title", cur->title);
 			FIELD("summary", cur->summary);
 			FIELD("status", cur->status);
+			FIELD("minos", cur->minos);
 			else if (!strcmp(line, "size")) {
 				cur->size = atol(val);
 			} else if ((!strcmp(line, "env") || !strcmp(line, "envpath")) && cur->nenv < 4
@@ -829,11 +831,33 @@ static int install_requirements(const struct pkg *k, int depth)
 	return 0;
 }
 
+/* Compares dotted versions ("0.30.1"): <0, 0, >0. */
+static int version_cmp(const char *a, const char *b)
+{
+	while (*a || *b) {
+		long x = strtol(a, (char **)&a, 10), y = strtol(b, (char **)&b, 10);
+		if (x != y) {
+			return x < y ? -1 : 1;
+		}
+		a += *a == '.';
+		b += *b == '.';
+		if (!((*a >= '0' && *a <= '9') || (*b >= '0' && *b <= '9'))) {
+			break;
+		}
+	}
+	return 0;
+}
+
 static int install_at(const char *name, int depth, int quiet)
 {
 	struct pkg *k = find(name);
 	if (!k) {
 		fprintf(stderr, "pkg: no package %s (pkg search, or pkg update)\n", name);
+		return 1;
+	}
+	if (k->minos[0] && version_cmp(MANIOS_VERSION, k->minos) < 0) {
+		fprintf(stderr, "pkg: %s needs ManiOS %s or later; this is %s\n", name, k->minos,
+		        MANIOS_VERSION);
 		return 1;
 	}
 	if (depth > DEPTH_MAX) {
@@ -1057,6 +1081,9 @@ static void show(const struct pkg *k, int long_form)
 		}
 		for (int i = 0; i < k->nreqs; i++) {
 			printf("  Needs: %s\n", k->req[i]);
+		}
+		if (k->minos[0]) {
+			printf("  Needs ManiOS %s or later\n", k->minos);
 		}
 		if (built_in(k)) {
 			printf("  Part of this system (in /boot/bin)\n");

@@ -15,7 +15,12 @@
  * file. PgUp and PgDn look back over the last HISTORY lines that
  * scrolled off the top; typing, or more output, comes back to the live
  * screen. With a COMMAND, term types it into the shell once the shell
- * is ready (`term top`). The window closes when the shell exits, or when
+ * is ready (`term top`).
+ *
+ * Raw mode (0.30): a program that prints ESC [ ? 7727 h gets each key as
+ * it is pressed, unechoed -- arrows and editing keys as the ANSI
+ * sequences a terminal sends -- until it prints ESC [ ? 7727 l (libc's
+ * con_raw() does both, and /dev/consctl on the console). The window closes when the shell exits, or when
  * ManiDE asks (Alt+q). */
 #include <errno.h>
 #include <manios.h>
@@ -72,6 +77,8 @@ static char pending[LINE_MAX + 1];  /* the command to type once sh is ready */
 static enum { TEXT, ESCAPE, CSI } esc;
 static int params[PARAMS], nparams;
 static bool private_mode;
+static bool raw_keys;                /* ESC [ ? 7727 h: keys go straight through */
+#define RAW_MODE 7727
 
 static void dirty(int r)
 {
@@ -279,6 +286,10 @@ static void control_sequence(char final)
 			cursor_shown = final == 'h';
 			dirty(row);
 		}
+		if ((final == 'h' || final == 'l') && param(0, 0) == RAW_MODE) {
+			raw_keys = final == 'h';
+			line_len = 0;
+		}
 		return;
 	}
 	switch (final) {
@@ -424,8 +435,37 @@ static void put_string(const char *s)
 	}
 }
 
+/* A key in raw mode: the byte itself, or the sequence a terminal sends. */
+static void raw_key(int k)
+{
+	static const struct {
+		int key;
+		const char *seq;
+	} SEQ[] = {
+		{ ZKT_KEY_UP, "\033[A" },    { ZKT_KEY_DOWN, "\033[B" },  { ZKT_KEY_RIGHT, "\033[C" },
+		{ ZKT_KEY_LEFT, "\033[D" },  { ZKT_KEY_HOME, "\033[H" },  { ZKT_KEY_END, "\033[F" },
+		{ ZKT_KEY_PGUP, "\033[5~" }, { ZKT_KEY_PGDN, "\033[6~" }, { ZKT_KEY_INSERT, "\033[2~" },
+		{ ZKT_KEY_DELETE, "\033[3~" },
+	};
+	if (k < 0x80) {
+		char c = (char)k;
+		write(to_sh, &c, 1);
+		return;
+	}
+	for (unsigned i = 0; i < sizeof(SEQ) / sizeof(SEQ[0]); i++) {
+		if (SEQ[i].key == k) {
+			write(to_sh, SEQ[i].seq, strlen(SEQ[i].seq));
+		}
+	}
+}
+
 static void key(int k)
 {
+	if (raw_keys) {
+		scroll_to(0);
+		raw_key(k);
+		return;
+	}
 	if (k == ZKT_KEY_PGUP || k == ZKT_KEY_PGDN) {
 		scroll_to(back + (k == ZKT_KEY_PGUP ? rows / 2 : -rows / 2));
 		return;

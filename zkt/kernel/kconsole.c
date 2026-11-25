@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include "cpu.h"
 #include "device.h"
+#include "kerrno.h"
 #include "kstring.h"
 #include "lfb_console.h"
 #include "mutex.h"
@@ -188,6 +189,17 @@ static bool edit_line(void)
 	}
 }
 
+/* Raw mode (0.30, /dev/consctl "rawon", as in Plan 9): reads return the
+ * keys as they come, at least one, without echo or editing; the
+ * keyboard's arrows and editing keys arrive as the ANSI sequences a
+ * terminal sends (input.c). Closing consctl, or "rawoff", ends it. */
+static bool raw_mode;
+
+bool console_is_raw(void)
+{
+	return raw_mode;
+}
+
 static long cons_read(struct device *dev, void *buf, size_t len)
 {
 	(void)dev;
@@ -195,6 +207,20 @@ static long cons_read(struct device *dev, void *buf, size_t len)
 		return 0;
 	}
 	mutex_lock(&reader_lock);
+	if (raw_mode && line_pos == line_len) {
+		uint8_t *out = buf;
+		size_t n = 0;
+		uint32_t flags = cpu_irq_save();
+		while (ring_empty(&input)) {
+			waitq_sleep(&input_ready);
+		}
+		while (n < len && !ring_empty(&input)) {
+			out[n++] = ring_pop(&input);
+		}
+		cpu_irq_restore(flags);
+		mutex_unlock(&reader_lock);
+		return (long)n;
+	}
 	if (line_pos == line_len) {
 		line_pos = 0;
 		if (!edit_line()) {
@@ -218,6 +244,9 @@ static int cons_poll(struct device *dev)
 	(void)dev;
 	if (line_pos < line_len) {
 		return 1;
+	}
+	if (raw_mode) {
+		return !ring_empty(&input);
 	}
 	bool cr = after_cr;
 	for (uint32_t i = input.tail; i != input.head; i++) {
@@ -245,7 +274,62 @@ static const struct char_device_ops cons_ops = { .read = cons_read, .write = con
 	                                              .poll = cons_poll };
 static struct device cons_device = { .name = "cons", .class = DEVICE_CHAR, .char_ops = &cons_ops };
 
+/* /dev/consctl: "rawon", "rawoff"; closing it ends raw mode. */
+static long consctl_write(struct device *dev, const void *buf, size_t len)
+{
+	(void)dev;
+	const char *s = buf;
+	if (len >= 5 && !memcmp(s, "rawon", 5)) {
+		raw_mode = true;
+	} else if (len >= 6 && !memcmp(s, "rawoff", 6)) {
+		raw_mode = false;
+	} else {
+		return -EINVAL;
+	}
+	waitq_wake_all(&input_ready);
+	return (long)len;
+}
+
+/* Reading says which mode the console is in, once: a file of one line. */
+static long consctl_pread(struct device *dev, uint32_t offset, void *buf, size_t len)
+{
+	(void)dev;
+	const char *state = raw_mode ? "rawon\n" : "rawoff\n";
+	size_t size = strlen(state);
+	if (offset >= size) {
+		return 0;
+	}
+	size_t n = size - offset < len ? size - offset : len;
+	memcpy(buf, state + offset, n);
+	return (long)n;
+}
+
+static long consctl_pwrite(struct device *dev, uint32_t offset, const void *buf, size_t len)
+{
+	(void)offset;
+	return consctl_write(dev, buf, len);
+}
+
+static uint32_t consctl_size(struct device *dev)
+{
+	(void)dev;
+	return raw_mode ? 6 : 7;
+}
+
+static void consctl_close(struct device *dev)
+{
+	(void)dev;
+	raw_mode = false;
+}
+
+static const struct char_device_ops consctl_ops = { .write = consctl_write, .pread = consctl_pread,
+	                                                 .pwrite = consctl_pwrite, .size = consctl_size,
+	                                                 .close = consctl_close };
+static struct device consctl_device = { .name = "consctl", .class = DEVICE_CHAR,
+	                                    .char_ops = &consctl_ops };
+
 void console_register(void)
 {
 	device_register(&cons_device);
+	device_register(&consctl_device);
 }

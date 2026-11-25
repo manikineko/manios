@@ -73,6 +73,10 @@ int mount(const char *dial, const char *old_path, int flag, const char *aname);
  * A.B.C.D. The descriptor reads and writes a byte stream; read returns 0
  * once the peer has finished sending. Waits up to about 15 seconds. */
 int dial(const char *addr);
+/* Keys as they are pressed, unechoed (on != 0), or lines again (0):
+ * on the console and in ManiDE's terminal; arrows come as ANSI escape
+ * sequences (0.30, conraw.c). Turn it off before exiting. */
+int con_raw(int on);
 /* The same, with the ZRP server on the other end of pipe `fd`: how a
  * program serves files to others (zrpsrv.h does the serving). */
 int mountfd(int fd, const char *old_path, int flag, const char *aname);

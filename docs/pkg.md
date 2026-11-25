@@ -124,6 +124,7 @@ status  the ManiOS test result
 cmd COMMAND=FILE        (DOS: a launcher for FILE in the package;
                          native: bin/COMMAND, its own command)
 requires PKG...         packages this one needs (0.30.0)
+minos VERSION           the oldest ManiOS it runs on (0.30.1)
 env NAME=VALUE          (DOS launchers)
 envpath NAME=DIR        (DOS launchers; DIR inside the package)
 source src/NAME-VERSION.zip   (or .tar.gz)
@@ -145,7 +146,9 @@ of which upstream package, which commands, any environment, and the
 groups. A recipe with `"kind": "native"` is built from this tree's build
 output (`make` first): ManiOS components such as `manidos`, versioned as
 `VERSION`. `mkrepo.py` adds `requires manidos` to every DOS package and
-checks that every requirement and group member exists. Then
+checks that every requirement and group member exists. Native programs of
+their own (such as `edit`) live in `apps/NAME/` and build to
+`build/apps/bin/NAME`, outside the system. Then
 
 ```sh
 python3 tools/mkrepo.py --downloads DIR_WITH_UPSTREAM_ZIPS \
